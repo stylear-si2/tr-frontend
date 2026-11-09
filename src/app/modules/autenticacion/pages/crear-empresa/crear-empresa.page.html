@@ -21,7 +21,7 @@
 </header>
 <main>
   @if (resultado(); as r) {
-    <section class="panel" aria-labelledby="registro-listo">
+    <section class="panel resultado-registro" aria-labelledby="registro-listo">
       <p class="ceja">Solicitud recibida</p>
       <h1 id="registro-listo" tabindex="-1">{{ r.empresa.nombre }}</h1>
       <p role="status">{{ r.mensaje }}</p>
@@ -38,18 +38,16 @@
       <p>
         Identificador de tu empresa: <strong>{{ r.empresa.codigo }}</strong>
       </p>
-      <a routerLink="/empresa">Ir al directorio de empresas</a>
+      <a class="boton" routerLink="/empresa">Ir al directorio de empresas</a>
     </section>
   } @else {
     <header class="encabezado">
-      <div>
-        <p class="ceja">Tu negocio en StyleAR</p>
-        <h1>Crear mi empresa</h1>
-        <p>
-          Elige un plan y registra a la persona que administrará tu tienda. La administración de
-          StyleAR revisará la solicitud antes de activar el acceso.
-        </p>
-      </div>
+      <p class="ceja">Tu negocio en StyleAR</p>
+      <h1>Crear mi empresa</h1>
+      <p class="introduccion">
+        Elige un plan, completa los datos de tu tienda y crea tu cuenta administradora. StyleAR
+        revisará tu solicitud antes de activar el acceso.
+      </p>
     </header>
     @if (cargando()) {
       <p role="status">Cargando planes disponibles…</p>
@@ -72,40 +70,61 @@
         <p id="registro-error" tabindex="-1" role="alert" class="error">{{ error() }}</p>
       }
       <form [formGroup]="form" (ngSubmit)="enviar()">
-        <fieldset class="panel">
-          <legend>1. Elige tu plan</legend>
+        <fieldset class="panel" aria-labelledby="registro-titulo-plan">
+          <div class="encabezado-paso">
+            <span class="numero-paso" aria-hidden="true">01</span>
+            <div>
+              <h2 id="registro-titulo-plan">Elige tu plan</h2>
+              <p>Consulta los límites y las funciones antes de elegir.</p>
+            </div>
+          </div>
           <div class="planes-registro">
             @for (plan of planes(); track plan.id) {
               <label class="opcion-plan" [for]="'registro-plan-' + plan.id">
-                <span
-                  ><input
+                <span class="nombre-plan">
+                  <strong [id]="'registro-nombre-plan-' + plan.id">{{ plan.nombre }}</strong>
+                  <input
                     [id]="'registro-plan-' + plan.id"
                     type="radio"
+                    name="plan_id"
                     formControlName="plan_id"
                     [value]="plan.id"
+                    [attr.aria-labelledby]="'registro-nombre-plan-' + plan.id"
                     required
                   />
-                  <strong>{{ plan.nombre }}</strong></span
-                >
-                <span class="cuotas-plan">
-                  @for (clave of cuotas; track clave) {
-                    <span>{{ etiquetas[clave] }}: {{ plan.limites[clave] ?? 'Sin límite' }}</span>
-                  }
                 </span>
-                <span class="cuotas-plan">
-                  @for (clave of funciones; track clave) {
-                    <span
-                      >{{ etiquetas[clave] }}:
-                      {{ plan.funciones[clave] ? 'Incluido' : 'No incluido' }}</span
-                    >
-                  }
+                <span class="detalle-plan">
+                  <span class="cuotas-plan">
+                    @for (clave of cuotas; track clave) {
+                      <span class="cuota-plan">
+                        <strong>{{ plan.limites[clave] ?? 'Sin límite' }}</strong>
+                        <span>{{ etiquetas[clave] }}</span>
+                      </span>
+                    }
+                  </span>
+                  <span class="funciones-plan">
+                    @for (clave of funciones; track clave) {
+                      <span class="funcion-plan">
+                        <span>{{ etiquetas[clave] }}</span>
+                        <span class="estado-plan" [class.incluida]="plan.funciones[clave]">
+                          {{ plan.funciones[clave] ? 'Incluido' : 'No incluido' }}
+                        </span>
+                      </span>
+                    }
+                  </span>
                 </span>
               </label>
             }
           </div>
         </fieldset>
-        <fieldset class="panel">
-          <legend>2. Datos de tu empresa</legend>
+        <fieldset class="panel" aria-labelledby="registro-titulo-empresa">
+          <div class="encabezado-paso">
+            <span class="numero-paso" aria-hidden="true">02</span>
+            <div>
+              <h2 id="registro-titulo-empresa">Datos de tu empresa</h2>
+              <p>Indica el nombre de tu tienda y cómo aparecerá en su enlace.</p>
+            </div>
+          </div>
           <div class="grid">
             <label for="registro-empresa"
               >Nombre de la empresa<input
@@ -131,9 +150,14 @@
             </div>
           </div>
         </fieldset>
-        <fieldset class="panel">
-          <legend>3. Cuenta administradora de tu empresa</legend>
-          <p>Elige un usuario y un correo que aún no estén registrados en StyleAR.</p>
+        <fieldset class="panel" aria-labelledby="registro-titulo-cuenta">
+          <div class="encabezado-paso">
+            <span class="numero-paso" aria-hidden="true">03</span>
+            <div>
+              <h2 id="registro-titulo-cuenta">Cuenta administradora</h2>
+              <p>Elige un usuario y un correo que aún no estén registrados en StyleAR.</p>
+            </div>
+          </div>
           <div class="grid">
             <label for="registro-nombre"
               >Nombre<input
@@ -210,11 +234,11 @@
             </div>
           </div>
         </fieldset>
-        <div class="panel">
-          <p>
-            Esta cuenta administrará únicamente tu empresa. El acceso se habilitará después de la
-            aprobación.
-          </p>
+        <div class="panel pie-formulario">
+          <div>
+            <strong>Revisión de la solicitud</strong>
+            <p>Tu cuenta administradora se habilitará cuando StyleAR apruebe el registro.</p>
+          </div>
           <button type="submit" [disabled]="enviando() || cargando()">
             {{ enviando() ? 'Enviando solicitud…' : 'Solicitar registro de empresa' }}
           </button>
