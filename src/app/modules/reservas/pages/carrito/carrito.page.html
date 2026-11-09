@@ -212,17 +212,14 @@
         <div class="reservation-fee">
           <span>Reserva gratuita (sólo unidades)</span>
           <strong>{{ formatMonto(montoReserva()) }}</strong>
-          <small
-            >Sin anticipo. Apartamos tus prendas durante 7 días desde la creación de la
-            reserva.</small
-          >
+          <small>
+            Hasta 2 unidades por variante (mismo modelo, talla y color). Apartamos tus prendas
+            durante 7 días desde que haces la reserva, sin anticipo.
+          </small>
         </div>
 
-        @if (excedeMaximoReserva()) {
-          <p class="stock-warning">
-            Los paquetes son para compra directa; las reservas admiten sólo unidades y hasta 2 por
-            variante.
-          </p>
+        @if (bloqueoReserva(); as bloqueo) {
+          <p class="stock-warning">{{ bloqueo }}</p>
         }
       }
 
@@ -275,7 +272,7 @@
             type="button"
             class="secondary-button"
             [appOperacionNueva]="
-              guardando() || !entregaLista() || excedeMaximoReserva() || !fechaCita()
+              guardando() || !entregaLista() || !!bloqueoReserva() || !fechaCita()
             "
             (click)="confirmarReserva()"
           >

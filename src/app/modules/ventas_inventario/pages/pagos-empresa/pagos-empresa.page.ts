@@ -25,7 +25,7 @@ import { ConfiguracionPagosEmpresa, ReembolsoPago, NotificacionPropia } from '..
         <form [formGroup]="form" (ngSubmit)="guardar()">
           <label for="titular-pago">Nombre del comercio para las pruebas</label>
           <input id="titular-pago" formControlName="titular" maxlength="180" />
-          <label><input type="checkbox" formControlName="stripe_habilitado" /> Habilitar Stripe de prueba</label>
+          <label><input type="checkbox" formControlName="stripe_habilitado" /> Stripe</label>
           <label><input type="checkbox" formControlName="qr_habilitado" /> Habilitar QR simulado</label>
           <button type="submit" [disabled]="form.invalid || ocupado()">Guardar medios de prueba</button>
         </form>

@@ -150,11 +150,17 @@ export class CarritoPage implements OnInit, OnDestroy {
   protected readonly totalItems = computed(() =>
     this.items().reduce((total, item) => total + item.cantidad, 0),
   );
-  protected readonly excedeMaximoReserva = computed(
-    () =>
-      this.tipoEntrega() === 'RECOJO_SUCURSAL' &&
-      this.items().some((item) => !!item.paquete_id || Number(item.cantidad) > 2),
-  );
+  protected readonly bloqueoReserva = computed(() => {
+    if (this.tipoEntrega() !== 'RECOJO_SUCURSAL') return '';
+    const items = this.items();
+    if (items.some((item) => item.paquete_id)) {
+      return 'Los paquetes mayoristas son para compra directa. Para reservar, agrega prendas por unidad.';
+    }
+    if (items.some((item) => Number(item.cantidad) > 2)) {
+      return 'Reduce a 2 unidades como máximo por variante para reservar.';
+    }
+    return '';
+  });
 
   ngOnInit(): void {
     this.perfil
@@ -349,8 +355,9 @@ export class CarritoPage implements OnInit, OnDestroy {
       this.error.set('Selecciona la fecha en la que pasaras por la sucursal.');
       return;
     }
-    if (this.excedeMaximoReserva()) {
-      this.error.set('Para reservar solo puedes apartar hasta 2 unidades de la misma prenda.');
+    const bloqueo = this.bloqueoReserva();
+    if (bloqueo) {
+      this.error.set(bloqueo);
       return;
     }
 
