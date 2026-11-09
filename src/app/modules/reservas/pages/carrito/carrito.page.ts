@@ -459,14 +459,12 @@ export class CarritoPage implements OnInit, OnDestroy {
   }
 
   protected pagarConStripe(): void {
+    if (this.guardando()) return;
+
     const sucursalId = this.sucursalId();
 
     if (sucursalId === null) {
       this.error.set('Selecciona una sucursal para pagar la compra digital.');
-      return;
-    }
-    if (this.tipoEntrega() === 'RECOJO_SUCURSAL') {
-      this.confirmarReserva();
       return;
     }
     const delivery = this.deliveryCheckout();
