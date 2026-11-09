@@ -66,7 +66,7 @@ test('CU19 aplica el saldo a otra prenda y completa el cambio con comprobante', 
   await axe(page);
   await page.screenshot({path:'../tr-backend/.private/productos_tarjetas.png',fullPage:true});
   await page.goto('/pagos');
-  await expect(page.getByRole('link',{name:'Configurar pagos de prueba'})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Configurar pagos',exact:true})).toBeVisible();
   await page.goto('/devoluciones');
   await expect(page.getByRole('navigation',{name:'Opciones de posventa'}).getByRole('link')).toHaveCount(3);
   await axe(page);

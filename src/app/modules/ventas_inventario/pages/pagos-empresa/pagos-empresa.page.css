@@ -1,9 +1,326 @@
-@import "../../../administracion/pages/cu06.shared.css";
-:host { display: block; color: var(--color-text); }
-section, article { margin: 1rem 0; padding: 1rem; border: 1px solid #6d7567; border-radius: .6rem; background: var(--color-surface); }
-label { display: block; margin: .8rem 0; }
-input:not([type="checkbox"]) { display: block; width: min(100%,32rem); padding: .65rem; border: 1px solid #59634e; }
-button { margin: .5rem .5rem .5rem 0; padding: .65rem .9rem; border-radius: .4rem; background: #435832; color: white; border: 1px solid #435832; cursor: pointer; }
-button:disabled { opacity: .65; cursor: default; }
-a { color: #28542b; text-decoration: underline; }
-[role="alert"] { color: #a12620; }
+:host {
+  --pagos-verde: #344a2a;
+  --pagos-suave: #eef3e8;
+  --pagos-texto-secundario: #4d5848;
+  --pagos-borde: #d9e0d2;
+  display: block;
+  max-width: 1060px;
+  margin-inline: auto;
+  padding-bottom: 2rem;
+  color: var(--color-text);
+}
+
+.barra-superior,
+.portada,
+.encabezado-panel,
+.encabezado-reembolso,
+.acciones-reembolso {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.barra-superior,
+.portada,
+.encabezado-reembolso {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.barra-superior {
+  margin-bottom: 0.875rem;
+}
+
+.enlace-volver,
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.enlace-volver {
+  color: var(--pagos-verde);
+  text-underline-offset: 3px;
+}
+
+.portada,
+.panel {
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid var(--pagos-borde);
+  border-radius: 1rem;
+}
+
+.portada {
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(120deg, #e5eddb, #f7f9f4 78%);
+}
+
+.ceja {
+  margin: 0 0 0.5rem;
+  color: var(--pagos-verde);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.5vw, 3rem);
+  line-height: 1.12;
+}
+
+.introduccion,
+.encabezado-panel p,
+.encabezado-reembolso p,
+.sin-reembolsos p {
+  margin: 0.4rem 0 0;
+  color: var(--pagos-texto-secundario);
+  line-height: 1.5;
+}
+
+.entorno {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #d2ddcb;
+  border-radius: 1rem;
+  background: #fff;
+  color: var(--pagos-verde);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.panel {
+  margin-bottom: 1rem;
+  background: var(--color-surface);
+  box-shadow: 0 3px 12px rgb(37 50 29 / 5%);
+}
+
+.encabezado-panel {
+  align-items: flex-start;
+  margin-bottom: 1.3rem;
+}
+
+.icono-panel,
+.icono-medio {
+  display: grid;
+  flex: 0 0 2.5rem;
+  place-items: center;
+  height: 2.5rem;
+  border-radius: 0.7rem;
+  background: var(--pagos-suave);
+  color: var(--pagos-verde);
+}
+
+.encabezado-panel h2,
+.encabezado-reembolso h3 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+.encabezado-panel h2 {
+  font-size: 1.25rem;
+}
+
+.campo,
+.medios {
+  margin: 0 0 1.125rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 28rem;
+}
+
+.campo label,
+.medios legend {
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.campo input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #788270;
+  border-radius: 0.6rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.campo small,
+.descripcion-medio,
+.detalle-medio,
+.referencia {
+  color: var(--pagos-texto-secundario);
+  line-height: 1.4;
+}
+
+.medios {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.medios legend {
+  margin-bottom: 0.65rem;
+  padding: 0;
+}
+
+.opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 255px), 1fr));
+  gap: 0.75rem;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid #a8b39f;
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.opcion:has(input:checked) {
+  border-color: #6f865e;
+  background: #f5f8f2;
+}
+
+.texto-medio {
+  display: grid;
+  flex: 1;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.nombre-medio {
+  font-weight: 750;
+}
+
+.descripcion-medio,
+.detalle-medio {
+  font-size: 0.8rem;
+}
+
+.detalle-medio {
+  font-weight: 650;
+}
+
+.opcion input {
+  flex: 0 0 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--pagos-verde);
+  cursor: pointer;
+}
+
+.acciones-formulario {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--pagos-borde);
+}
+
+.boton {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.boton.primario {
+  background: var(--pagos-verde);
+  color: #fff;
+}
+
+.boton.secundario {
+  border-color: #abb7a2;
+  background: var(--color-surface);
+  color: var(--pagos-verde);
+}
+
+.boton.primario:not(:disabled):hover {
+  background: #24381c;
+}
+
+.boton.secundario:not(:disabled):hover {
+  background: var(--pagos-suave);
+}
+
+.boton:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+:is(a, button, input):focus-visible {
+  outline: 3px solid #48613a;
+  outline-offset: 3px;
+}
+
+.reembolsos {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.reembolso,
+.sin-reembolsos {
+  padding: 0.9rem;
+  border: 1px solid var(--pagos-borde);
+  border-radius: 0.75rem;
+  background: #f8faf6;
+  overflow-wrap: anywhere;
+}
+
+.encabezado-reembolso h3 {
+  font-size: 1rem;
+}
+
+.acciones-reembolso {
+  flex-wrap: wrap;
+}
+
+.estado {
+  padding: 0.25rem 0.5rem;
+  border-radius: 1rem;
+  background: #f5ebd8;
+  color: #60491c;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.estado.confirmado {
+  background: #e3efdc;
+  color: #305029;
+}
+
+.aviso {
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  background: var(--pagos-suave);
+  color: var(--pagos-verde);
+}
+
+.aviso.error {
+  background: #fcebea;
+  color: #912520;
+}
+
+@media (max-width: 480px) {
+  .acciones-formulario .boton {
+    width: 100%;
+  }
+}
