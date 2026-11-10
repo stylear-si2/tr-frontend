@@ -18,9 +18,13 @@ import {
   selector: 'app-notificaciones',
   imports: [DatePipe],
   templateUrl: './notificaciones.page.html',
-  styleUrl: './pagos-empresa.page.css',
+  styleUrls: ['./pagos-empresa.page.css', './notificaciones.page.css'],
 })
 export class NotificacionesPage {
+  protected icono(categoria: string): string {
+    const iconos: Record<string, string> = { GENERAL: 'pi-bell', COMPRA: 'pi-shopping-bag', PAGO: 'pi-credit-card', RESERVA: 'pi-calendar', ENTREGA: 'pi-truck', CAMBIO: 'pi-sync', DEVOLUCION: 'pi-replay', REEMBOLSO: 'pi-wallet' };
+    return 'pi ' + (iconos[categoria] ?? 'pi-bell');
+  }
   private readonly api = inject(PagoService);
   private readonly destroy = inject(DestroyRef);
   private readonly cambios = inject(CambioContextoService);

@@ -21,12 +21,23 @@
   <p class="status-message">Cargando empleados...</p>
 }
 
+@if (grupoEmpleado() === null) {
+  <section class="grupos-acceso" aria-label="Tipos de empleado" #hubGrupos tabindex="-1">
+    @for (rol of rolesDisponibles; track rol.valor) {
+      <button type="button" class="grupo-acceso" (click)="elegirGrupoEmpleado(rol.valor)"><i class="pi pi-id-card" aria-hidden="true"></i><strong>{{ rol.etiqueta }}</strong><span>Ver empleados de este tipo</span></button>
+    }
+    <button type="button" class="grupo-acceso" (click)="elegirGrupoEmpleado('TODOS')"><i class="pi pi-users" aria-hidden="true"></i><strong>Todos los empleados</strong><span>Consultar el equipo completo</span></button>
+    <button type="button" class="grupo-acceso" (click)="elegirGrupoEmpleado('SIN_ROL')"><i class="pi pi-user-minus" aria-hidden="true"></i><strong>Sin roles activos</strong><span>Revisar asignaciones pendientes</span></button>
+  </section>
+}
 <div class="content-grid">
+  @if (grupoEmpleado() !== null) {
   <section class="panel" aria-labelledby="empleados-title">
+    <button type="button" class="volver-grupos" (click)="elegirGrupoEmpleado(null)"><i class="pi pi-arrow-left" aria-hidden="true"></i>Tipos de empleado</button>
     <div class="panel-header">
       <div>
         <p class="eyebrow">Listado</p>
-        <h2 id="empleados-title">Empleados registrados</h2>
+        <h2 id="empleados-title" #tituloGrupo tabindex="-1">Empleados registrados</h2>
       </div>
       <div class="panel-actions">
         <span class="count-badge">{{ empleadosFiltrados().length }} empleados</span>
@@ -111,6 +122,7 @@
     </div>
   </section>
 
+  }
   <app-modal
     [open]="formularioAbierto()"
     [title]="empleadoEditandoId() === null ? 'Nuevo empleado' : 'Editar empleado'"

@@ -3,7 +3,7 @@ import { AuthService } from '../../../autenticacion/services/auth.service';
 import { EstadoPlanService } from '../../../../core/services/estado-plan.service';
 import { OperacionNuevaDirective } from '../../../../core/directives/operacion-nueva.directive';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, afterNextRender, ElementRef, Injector, viewChild, computed, inject, signal } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -20,10 +20,17 @@ import { AppModalComponent } from '../../../../shared/components/app-modal/app-m
 @Component({
   imports: [OperacionNuevaDirective, ReactiveFormsModule, AppModalComponent],
   selector: 'app-empleados-page',
-  styleUrl: './empleados.page.css',
+  styleUrls: ['./empleados.page.css', '../../../../shared/styles/grupos-acceso.css'],
   templateUrl: './empleados.page.html',
 })
 export class EmpleadosPage {
+  private readonly focoInjector = inject(Injector);
+  private readonly tituloGrupo = viewChild<ElementRef<HTMLElement>>('tituloGrupo');
+  private readonly hubGrupos = viewChild<ElementRef<HTMLElement>>('hubGrupos');
+  private enfocarGrupo(abierto: boolean): void {
+    afterNextRender(() => (abierto ? this.tituloGrupo() : this.hubGrupos())?.nativeElement.focus(), { injector: this.focoInjector });
+  }
+
   protected readonly auth = inject(AuthService);
   protected readonly soloConsulta = computed(() => !this.auth.tieneRol('ADMINISTRADOR'));
   protected readonly modoNuevo = signal(true);
@@ -34,6 +41,12 @@ export class EmpleadosPage {
   private readonly empleadoService = inject(EmpleadoService);
   private readonly ciudadSucursalService = inject(CiudadSucursalService);
 
+  protected readonly grupoEmpleado = signal<string | null>(null);
+  protected elegirGrupoEmpleado(rol: string | null): void {
+    this.grupoEmpleado.set(rol);
+    this.enfocarGrupo(rol !== null);
+    this.busqueda.set('');
+  }
   protected readonly empleados = signal<EmpleadoResponse[]>([]);
   protected readonly sucursales = signal<SucursalResponse[]>([]);
   protected readonly busqueda = signal('');
@@ -53,11 +66,11 @@ export class EmpleadosPage {
   protected readonly empleadosFiltrados = computed(() => {
     const busqueda = this.busqueda().trim().toLowerCase();
 
-    if (busqueda === '') {
-      return this.empleados();
-    }
+    const grupo = this.grupoEmpleado();
+    const empleados = this.empleados().filter(e => grupo === 'TODOS' || grupo === null || (grupo === 'SIN_ROL' ? e.roles.length === 0 : e.roles.includes(grupo)));
+    if (busqueda === '') return empleados;
 
-    return this.empleados().filter((empleado) => {
+    return empleados.filter((empleado) => {
       const texto = [
         empleado.nombre,
         empleado.apellido,

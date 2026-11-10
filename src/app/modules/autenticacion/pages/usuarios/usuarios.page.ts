@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
+import { Component, afterNextRender, ElementRef, Injector, viewChild, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -21,9 +21,16 @@ import { EstadoPlanService } from '../../../../core/services/estado-plan.service
   selector: 'app-usuarios-page',
   imports: [ReactiveFormsModule, AppDrawerComponent, RouterLink],
   templateUrl: './usuarios.page.html',
-  styleUrl: '../acceso-admin.css',
+  styleUrls: ['../acceso-admin.css', '../../../../shared/styles/grupos-acceso.css'],
 })
 export class UsuariosPage {
+  private readonly focoInjector = inject(Injector);
+  private readonly tituloGrupo = viewChild<ElementRef<HTMLElement>>('tituloGrupo');
+  private readonly hubGrupos = viewChild<ElementRef<HTMLElement>>('hubGrupos');
+  private enfocarGrupo(abierto: boolean): void {
+    afterNextRender(() => (abierto ? this.tituloGrupo() : this.hubGrupos())?.nativeElement.focus(), { injector: this.focoInjector });
+  }
+
   protected readonly auth = inject(AuthService);
   private readonly api = inject(AccesoAdminService);
   private readonly destroyRef = inject(DestroyRef);
@@ -33,6 +40,24 @@ export class UsuariosPage {
   protected readonly puedeOtorgar = computed(
     () => this.plataforma || this.plan.operacionesPermitidas(),
   );
+  protected readonly grupo = signal<string | null>(null);
+  protected readonly grupos = computed(() => [
+    { valor: 'TODOS', etiqueta: 'Todos los usuarios', icono: 'pi-users' },
+    ...this.roles().filter(r => r.activo && r.nombre !== 'ADMIN_SAAS').map(r => ({
+      valor: r.nombre, etiqueta: this.nombreRol(r.nombre), icono: r.nombre === 'CLIENTE' ? 'pi-shopping-bag' : r.nombre === 'PROVEEDOR' ? 'pi-truck' : 'pi-id-card',
+    })),
+    { valor: 'SIN_ROL', etiqueta: 'Sin roles activos', icono: 'pi-user-minus' },
+  ]);
+  protected nombreRol(nombre: string): string {
+    const nombres: Record<string, string> = { CLIENTE: 'Clientes', ADMINISTRADOR: 'Administradores', PROVEEDOR: 'Proveedores', CAJERO: 'Cajeros', ENCARGADO_SUCURSAL: 'Encargados de sucursal', PERSONAL_VENTAS: 'Personal de ventas', TODOS: 'Todos los usuarios', SIN_ROL: 'Sin roles activos' };
+    return nombres[nombre] ?? nombre.replaceAll('_', ' ').toLowerCase();
+  }
+  protected elegirGrupo(grupo: string | null): void {
+    this.grupo.set(grupo);
+    this.enfocarGrupo(grupo !== null);
+    this.filtros.controls.busqueda.setValue('');
+    if (grupo !== null) this.cargar(1);
+  }
   private carga?: Subscription;
   protected readonly ambito = signal<number | null>(null);
   protected readonly empresa = new FormControl<number | null>(null);
@@ -117,12 +142,13 @@ export class UsuariosPage {
     return this.auth.puede(p);
   }
   protected cargar(n = 1) {
+    if (!this.plataforma && this.grupo() === null) return;
     const v = this.filtros.getRawValue();
     this.carga?.unsubscribe();
     this.cargando.set(true);
     this.error.set('');
     this.carga = this.api
-      .cuentas(this.plataforma, this.empresa.value, v.estado, v.busqueda, n)
+      .cuentas(this.plataforma, this.empresa.value, v.estado, v.busqueda, n, this.grupo() === 'TODOS' ? null : this.grupo())
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.cargando.set(false)),

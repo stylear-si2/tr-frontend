@@ -1,9 +1,9 @@
-<h1>Mis notificaciones</h1>
+<header class="bandeja-cabecera"><span class="bandeja-emblema" aria-hidden="true"><i class="pi pi-bell"></i></span><div><p class="bandeja-ceja">TU ACTIVIDAD EN STYLEAR</p><h1>Mis notificaciones</h1></div></header>
 <p>Consulta las actualizaciones de tu cuenta en esta empresa, aunque no recibas avisos push.</p>
-<p role="status">
+<p role="status" class="bandeja-resumen">
   {{ noLeidas() }} sin leer en toda tu bandeja · {{ total() }} resultados del filtro
 </p>
-<div class="grid">
+<div class="bandeja-filtros">
   <label for="notas-lectura"
     >Lectura<select
       id="notas-lectura"
@@ -28,15 +28,16 @@
     </select></label
   >
 </div>
-<button type="button" (click)="cargar()" [disabled]="cargando() || ocupado()">
-  Actualizar notificaciones
+<div class="bandeja-acciones" aria-label="Acciones de la bandeja"><button type="button" (click)="cargar()" [disabled]="cargando() || ocupado()">
+  <i class="pi pi-refresh" aria-hidden="true"></i> Actualizar notificaciones
 </button>
 <button type="button" (click)="todas()" [disabled]="ocupado() || noLeidas() === 0">
-  Marcar todas como leídas
+  <i class="pi pi-check-circle" aria-hidden="true"></i> Marcar todas como leídas
 </button>
 <button type="button" (click)="verPreferencias()" [disabled]="ocupado()">
-  Preferencias de avisos
+  <i class="pi pi-sliders-h" aria-hidden="true"></i> Preferencias de avisos
 </button>
+</div>
 @if (cargando()) {
   <p role="status">Consultando bandeja…</p>
 }
@@ -71,24 +72,26 @@
   </section>
 }
 @for (n of notas(); track n.id) {
-  <article>
+  <article class="aviso-tarjeta" [class.aviso-nuevo]="!n.leida" [attr.data-categoria]="n.categoria">
+    <div class="aviso-encabezado"><span class="aviso-icono" aria-hidden="true"><i [class]="icono(n.categoria)"></i></span><span class="aviso-categoria">{{ n.categoria }}</span><span class="aviso-lectura">{{ n.leida ? 'Leída' : 'Nueva' }}</span></div>
     <h2>{{ n.titulo }}</h2>
     <p>{{ n.mensaje }}</p>
     <p>
       {{ n.categoria }} · {{ n.creado_en | date: 'dd/MM/yyyy HH:mm' }} ·
       {{ n.leida ? 'Leída' : 'Sin leer' }}
     </p>
-    <button type="button" (click)="abrir(n)" [disabled]="ocupado()">
-      Abrir actualización #{{ n.id }}
+    <div class="aviso-acciones"><button type="button" (click)="abrir(n)" [disabled]="ocupado()">
+      <i class="pi pi-arrow-up-right" aria-hidden="true"></i> Abrir actualización #{{ n.id }}
     </button>
     @if (!n.leida) {
       <button type="button" (click)="leer(n)" [disabled]="ocupado()">
-        Marcar como leída #{{ n.id }}
+        <i class="pi pi-check" aria-hidden="true"></i> Marcar como leída #{{ n.id }}
       </button>
     }
     <button type="button" (click)="trazabilidad(n)" [disabled]="ocupado()">
-      Estado del aviso #{{ n.id }}
+      <i class="pi pi-info-circle" aria-hidden="true"></i> Estado del aviso #{{ n.id }}
     </button>
+    </div>
   </article>
 } @empty {
   @if (!cargando() && !error()) {

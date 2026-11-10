@@ -68,12 +68,14 @@ export class AccesoAdminService {
     estado: string,
     busqueda: string,
     pagina: number,
+    rol: string | null = null,
   ) {
     let params = new HttpParams()
       .set('estado', estado)
       .set('busqueda', busqueda)
       .set('pagina', pagina)
       .set('por_pagina', 25);
+    if (rol) params = params.set('rol', rol);
     if (plataforma && empresa !== null) params = params.set('empresa_id', empresa);
     return this.http.get<PaginaAccesos>(
       this.base + (plataforma ? '/saas/usuarios' : '/usuarios/paginados'),

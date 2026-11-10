@@ -40,6 +40,21 @@
     </p>
   </section>
 }
+@if (!plataforma && grupo() === null) {
+  <section aria-label="Tipos de usuario" class="grupos-acceso" #hubGrupos tabindex="-1">
+    @for (g of grupos(); track g.valor) {
+      <button type="button" class="grupo-acceso" (click)="elegirGrupo(g.valor)">
+        <i class="pi" [class]="'pi ' + g.icono" aria-hidden="true"></i>
+        <strong>{{ g.etiqueta }}</strong><span>Ver cuentas <i class="pi pi-arrow-right" aria-hidden="true"></i></span>
+      </button>
+    }
+  </section>
+}
+@if (plataforma || grupo() !== null) {
+  @if (!plataforma) {
+    <button type="button" class="volver-grupos" (click)="elegirGrupo(null)"><i class="pi pi-arrow-left" aria-hidden="true"></i>Tipos de usuario</button>
+    <h2 class="titulo-grupo" #tituloGrupo tabindex="-1">{{ nombreRol(grupo() ?? '') }}</h2>
+  }
 <section class="panel">
   <form class="filtros" [formGroup]="filtros" (ngSubmit)="cargar(1)">
     <div class="field">
@@ -175,6 +190,8 @@
     Siguiente
   </button>
 </nav>
+
+}
 
 <app-drawer
   [open]="tipo() === 'nuevo' || tipo() === 'editar'"
