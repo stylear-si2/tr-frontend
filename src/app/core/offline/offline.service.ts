@@ -1,3 +1,4 @@
+import { EmpresaContextoService } from '../services/empresa-contexto.service';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, effect, inject, Service, signal } from '@angular/core';
 import { Router } from '@angular/router';
@@ -15,6 +16,7 @@ import {
   CIERRE_COMPARTIDO,
   CuentaOffline,
   DescargaOffline,
+  DescargaCambios,
   EQUIPO_COMPARTIDO,
   HistorialOffline,
   IdentidadOffline,
@@ -67,6 +69,7 @@ function historial(tipo: HistorialOffline['tipo'], fila: FilaRemota): HistorialO
 @Service()
 export class OfflineService {
   private readonly auth = inject(AuthService);
+  private readonly empresa = inject(EmpresaContextoService);
   private readonly http = inject(HttpClient);
   private readonly db = inject(OfflineDb);
   private readonly router = inject(Router);
@@ -169,6 +172,9 @@ export class OfflineService {
     if (!usuario?.empresa_id || !usuario.empresa_codigo || !this.puedeActivar()) {
       throw new Error('Inicia sesión en una empresa con permisos de operación.');
     }
+    if (this.empresa.empresa()?.id !== usuario.empresa_id || this.empresa.empresa()?.codigo !== usuario.empresa_codigo) {
+      await firstValueFrom(this.empresa.restaurar(usuario.empresa_codigo));
+    }
     const revision = this.revision;
     const perfil = await this.verificarPerfil(revision);
     this.comprobar(revision);
@@ -212,6 +218,7 @@ export class OfflineService {
             fecha: 0,
             sucursales: [],
             catalogo: {},
+            posventa: await this.obtener<DescargaCambios>('/posventa/cambios/offline/descarga'),
             historial: [],
           } satisfies DescargaOffline),
         );
@@ -290,7 +297,9 @@ export class OfflineService {
     const revision = this.revision;
     if (
       !this.copia()?.sucursales.some((s) => s.id === operacion.sucursal) ||
-      (operacion.tipo === 'VENTA' ? !this.puedeVender() : !this.puedeReservar())
+      (['VENTA', 'REVISION_CAMBIO', 'ENTREGA_CAMBIO'].includes(operacion.tipo)
+        ? !this.puedeVender()
+        : !this.puedeReservar())
     ) {
       throw new Error('La sucursal o la operación no está autorizada.');
     }
@@ -306,6 +315,33 @@ export class OfflineService {
     });
     await this.actualizarCola(acceso, revision);
     if (this.conectado() && this.auth.estaAutenticado()) void this.sincronizar();
+  }
+
+  async actualizarCompra(
+    uuid: string,
+    cambios: Partial<HistorialOffline>,
+    recotizar = false,
+  ): Promise<void> {
+    const acceso = this.requerir();
+    const revision = this.revision;
+    const fila = await this.db.reclamar(acceso.ambito, uuid, crypto.randomUUID(), true);
+    if (!fila) throw new Error('La compra está sincronizando. Inténtalo nuevamente.');
+    const op = await abrir<OperacionOffline>(
+      acceso.clave,
+      this.etiqueta(acceso, uuid),
+      fila.contenido,
+    );
+    this.comprobar(revision);
+    if (op.tipo !== 'COMPRA') throw new Error('Operación inválida.');
+    if (recotizar) {
+      if (op.resultado?.orden_id)
+        throw new Error('Consulta o cancela el pago existente en Mis pagos.');
+      op.estado = 'Pendiente';
+      op.resultado = undefined;
+    } else if (op.resultado) op.resultado = { ...op.resultado, ...cambios };
+    await this.db.resultado(fila, await sellar(acceso.clave, this.etiqueta(acceso, uuid), op));
+    await this.actualizarCola(acceso, revision);
+    if (recotizar) await this.sincronizar(true);
   }
 
   async registrarDevolucion(uuid: string): Promise<void> {
@@ -395,6 +431,13 @@ export class OfflineService {
         catalogo: Object.fromEntries(
           Object.entries(previa.catalogo).filter(([id]) => ids.has(Number(id))),
         ),
+        posventa: previa.posventa
+          ? {
+              ...previa.posventa,
+              ventas: previa.posventa.ventas.filter((v) => ids.has(v.sucursal_id)),
+              cambios: previa.posventa.cambios.filter((c) => ids.has(c.original.sucursal_id)),
+            }
+          : undefined,
         historial: previa.historial.filter((h) => h.sucursal !== undefined && ids.has(h.sucursal)),
       });
     }
@@ -428,27 +471,46 @@ export class OfflineService {
             const esVenta = vigente.tipo === 'VENTA';
             const respuesta = await firstValueFrom(
               this.http
-                .post<FilaRemota>(
-                  `${API}/${esVenta ? 'ventas-presenciales' : 'reservas'}/offline`,
+                .request<FilaRemota>(
+                  vigente.tipo === 'REVISION_CAMBIO' ? 'PATCH' : 'POST',
+                  `${API}${vigente.tipo === 'COMPRA' ? '/pagos/offline/cotizar' : vigente.tipo === 'CAMBIO' ? '/posventa/cambios' : vigente.tipo === 'ENTREGA_CAMBIO' ? '/posventa/cambios/' + String(vigente.datosCambio?.['id']) + '/completar' : vigente.tipo === 'REVISION_CAMBIO' ? '/posventa/cambios/' + String(vigente.datosCambio?.['id']) + '/revision' : '/' + (esVenta ? 'ventas-presenciales' : 'reservas') + '/offline'}`,
                   {
-                    clave_operacion: vigente.uuid,
-                    sucursal_id: vigente.sucursal,
-                    items: esVenta
-                      ? vigente.lineas
-                      : vigente.lineas.map(({ producto_variante_id, cantidad }) => ({
-                          producto_variante_id,
-                          cantidad,
-                        })),
-                    ...(esVenta
-                      ? { metodo_pago: 'EFECTIVO', efectivo_centavos: vigente.efectivo }
-                      : { fecha_cita: vigente.fechaCita }),
+                    body: vigente.datosCambio
+                      ? {
+                          ...Object.fromEntries(
+                            Object.entries(vigente.datosCambio).filter(([k]) => k !== 'id'),
+                          ),
+                          ...(vigente.tipo === 'CAMBIO' ? { clave_operacion: vigente.uuid } : {}),
+                        }
+                      : {
+                          clave_operacion: vigente.uuid,
+                          sucursal_id: vigente.sucursal,
+                          items:
+                            esVenta || vigente.tipo === 'COMPRA'
+                              ? vigente.lineas
+                              : vigente.lineas.map(({ producto_variante_id, cantidad }) => ({
+                                  producto_variante_id,
+                                  cantidad,
+                                })),
+                          ...(esVenta
+                            ? { metodo_pago: 'EFECTIVO', efectivo_centavos: vigente.efectivo }
+                            : vigente.tipo === 'COMPRA'
+                              ? {}
+                              : { fecha_cita: vigente.fechaCita }),
+                        },
                   },
                 )
                 .pipe(timeout(25_000)),
             );
-            vigente.resultado = historial(vigente.tipo, respuesta);
+            vigente.resultado = {
+              ...historial(vigente.tipo, respuesta),
+              items: (respuesta as FilaRemota & { items?: OperacionOffline['lineas'] }).items,
+            };
+            if (vigente.tipo === 'COMPRA')
+              vigente.motivo =
+                'Cotización actualizada. Revisa el total y continúa al pago; todavía no es una venta.';
             vigente.estado = 'Confirmada';
-            vigente.motivo = undefined;
+            if (vigente.tipo !== 'COMPRA') vigente.motivo = undefined;
           } catch (error) {
             if (!(error instanceof HttpErrorResponse) || ![400, 409, 422].includes(error.status))
               throw error;
@@ -499,6 +561,7 @@ export class OfflineService {
       fecha: Date.now(),
       sucursales,
       catalogo,
+      posventa: await this.obtener<DescargaCambios>('/posventa/cambios/offline/descarga'),
       historial: [
         ...reservas.map((fila) => historial('RESERVA', fila)),
         ...otras.map((fila) => historial(personal ? 'VENTA' : 'PAGO', fila)),

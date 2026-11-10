@@ -103,3 +103,8 @@ a {
 .listo {
   color: #1d6034;
 }
+
+textarea { width: 100%; min-height: 6rem; padding: .75rem; font: inherit; border: 1px solid #666; border-radius: .5rem; box-sizing: border-box; }
+form { min-width: 0; }
+article form { padding-block: .75rem; border-top: 1px solid #ddd; }
+button { max-width: 100%; white-space: normal; }

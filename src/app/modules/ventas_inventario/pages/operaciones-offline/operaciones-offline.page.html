@@ -117,15 +117,211 @@
         Historial y pendientes
       </button>
     </nav>
-    @if (historialVisible()) {
+    <button
+      type="button"
+      [attr.aria-pressed]="modoCambios()"
+      (click)="modoCambios.set(!modoCambios())"
+    >
+      Cambios de prendas offline
+    </button>
+    @if (qr(); as pago) {
+      <section aria-label="Pago QR">
+        <h2>Pago QR</h2>
+        <img [src]="pago.imagen" alt="Código de la orden de pago" width="220" height="220" />
+        @if (pago.confirmacion_prueba) {
+          <button type="button" [disabled]="guardando()" (click)="confirmarQr()">
+            Confirmar QR simulado
+          </button>
+        }
+        <button type="button" (click)="qr.set(null)">Cerrar</button>
+      </section>
+    }
+    @if (modoCambios()) {
+      <section aria-label="Cambios de prendas">
+        <h2>Cambios de prendas offline</h2>
+        <p>
+          Usa las compras descargadas. El servidor verificará el plazo y los datos al reconectar.
+          Los pagos de diferencias requieren conexión.
+        </p>
+        @if (offline.puedeReservar()) {
+          @for (venta of offline.copia()?.posventa?.ventas ?? []; track venta.venta_id) {
+            <article>
+              <h3>{{ venta.venta_codigo }}</h3>
+              <p>Plazo conocido hasta {{ venta.vence_cambio | date: 'dd/MM/yyyy HH:mm' }}</p>
+              @for (linea of venta.detalles; track linea.venta_detalle_id) {
+                @if (linea.cantidad_disponible > 0) {
+                  <form
+                    (submit)="
+                      $event.preventDefault();
+                      solicitarCambio(venta, linea, cantidad.value, motivo.value, reemplazo.value)
+                    "
+                  >
+                    <h4>{{ linea.producto }} · {{ linea.talla }} / {{ linea.color }}</h4>
+                    <label
+                      >Cantidad
+                      <input
+                        #cantidad
+                        type="number"
+                        value="1"
+                        min="1"
+                        [max]="linea.cantidad_disponible"
+                        required
+                    /></label>
+                    <label
+                      >Motivo <textarea #motivo required minlength="5" maxlength="500"></textarea>
+                    </label>
+                    <label
+                      >Reemplazo solicitado
+                      <select #reemplazo>
+                        <option value="">Elegir al reconectar</option>
+                        @for (
+                          v of offline.copia()?.catalogo?.[venta.sucursal_id] ?? [];
+                          track v.variante_id
+                        ) {
+                          <option [value]="v.variante_id">
+                            {{ v.nombre }} · {{ v.talla }} / {{ v.color }}
+                          </option>
+                        }
+                      </select></label
+                    ><button
+                      type="submit"
+                      [disabled]="
+                        guardando() || !offline.copia()?.posventa?.politica?.cambios_habilitados
+                      "
+                    >
+                      Guardar solicitud de cambio
+                    </button>
+                  </form>
+                }
+              }
+            </article>
+          } @empty {
+            <p>No hay compras elegibles descargadas. Sincroniza con Internet.</p>
+          }
+        } @else {
+          @for (c of offline.copia()?.posventa?.cambios ?? []; track c.id) {
+            @if (c.estado === 'LISTO') {
+              <article>
+                <h3>Cambio {{ c.id }} listo para entregar</h3>
+                <label
+                  ><input #entrega type="checkbox" /> Confirmo la entrega física del
+                  reemplazo</label
+                >
+                <button
+                  type="button"
+                  [disabled]="guardando()"
+                  (click)="entregarCambio(c, entrega.checked)"
+                >
+                  Guardar entrega pendiente
+                </button>
+              </article>
+            }
+            @if (c.estado === 'SOLICITADO') {
+              <article>
+                <h3>Cambio {{ c.id }} · {{ c.original.venta_codigo }}</h3>
+                <p>{{ c.original.motivo }}</p>
+                <label
+                  >Condición de la prenda
+                  <textarea #condicion minlength="5" maxlength="500"></textarea>
+                </label>
+                <label
+                  >Unidades no vendibles <input #noVendibles type="number" min="0" value="0"
+                /></label>
+                <label
+                  ><input #recibida type="checkbox" /> Confirmo la recepción física e
+                  inspección</label
+                >
+                <button
+                  type="button"
+                  [disabled]="guardando()"
+                  (click)="
+                    revisarCambio(c, true, condicion.value, noVendibles.value, recibida.checked)
+                  "
+                >
+                  Guardar aceptación pendiente
+                </button>
+                <button
+                  type="button"
+                  [disabled]="guardando()"
+                  (click)="revisarCambio(c, false, condicion.value, noVendibles.value, false)"
+                >
+                  Guardar rechazo pendiente
+                </button>
+              </article>
+            }
+          }
+        }
+        <a routerLink="/cambios">Continuar gestión online de cambios</a>
+      </section>
+    } @else if (historialVisible()) {
       <section aria-labelledby="historial-titulo">
         <h2 id="historial-titulo">Historial y pendientes</h2>
         @for (op of colaVisible(); track op.uuid) {
           <article>
-            <h3>{{ op.tipo === 'VENTA' ? 'Venta de contado' : 'Reserva' }} · {{ op.estado }}</h3>
+            <h3>
+              {{
+                op.tipo === 'VENTA'
+                  ? 'Venta de contado'
+                  : op.tipo === 'COMPRA'
+                    ? 'Compra pendiente de pago'
+                    : op.tipo === 'RESERVA'
+                      ? 'Reserva'
+                      : 'Cambio de prendas'
+              }}
+              · {{ op.estado }}
+            </h3>
             <p>{{ op.fecha | date: 'dd/MM/yyyy HH:mm' }} · Referencia {{ op.uuid }}</p>
             @if (op.resultado; as resultado) {
               <p>{{ resultado.codigo }} · {{ resultado.total | currency: 'BOB' : 'Bs ' }}</p>
+            }
+            @if (op.tipo === 'COMPRA' && op.resultado?.items && op.resultado?.estado !== 'PAGADO') {
+              <p>
+                Confirma el total actualizado antes de pagar. La disponibilidad se comprueba
+                nuevamente al crear el pago. Recojo en sucursal.
+              </p>
+              <button
+                type="button"
+                [disabled]="
+                  guardando() ||
+                  !offline.conectado() ||
+                  !offline.usuario() ||
+                  (op.resultado?.medio !== undefined && op.resultado?.medio !== 'stripe')
+                "
+                (click)="pagarCompra(op, 'stripe')"
+              >
+                Aceptar total y pagar con Stripe
+              </button>
+              <button
+                type="button"
+                [disabled]="
+                  guardando() ||
+                  !offline.conectado() ||
+                  !offline.usuario() ||
+                  (op.resultado?.medio !== undefined && op.resultado?.medio !== 'qr')
+                "
+                (click)="pagarCompra(op, 'qr')"
+              >
+                Aceptar total y pagar con QR
+              </button>
+              <a routerLink="/mis-pagos">Consultar estado del pago</a>
+              @if (!op.resultado?.orden_id) {
+                <button
+                  type="button"
+                  [disabled]="guardando() || !offline.conectado()"
+                  (click)="recotizar(op)"
+                >
+                  Actualizar cotización
+                </button>
+              }
+            }
+            @if (op.tipo === 'COMPRA' && !op.resultado && op.estado !== 'Pendiente') {
+              <button
+                type="button"
+                [disabled]="guardando() || !offline.conectado()"
+                (click)="recotizar(op)"
+              >
+                Revisar cotización nuevamente
+              </button>
             }
             @if (op.motivo) {
               <p>{{ op.motivo }}</p>
@@ -175,6 +371,14 @@
     } @else {
       <section aria-labelledby="catalogo-titulo">
         <h2 id="catalogo-titulo">Catálogo descargado</h2>
+        @if (offline.puedeReservar()) {
+          <div class="acciones">
+            <button type="button" [attr.aria-pressed]="!modoCompra()" (click)="cambiarModo(false)">Reservar</button>
+            <button type="button" [attr.aria-pressed]="modoCompra()" (click)="cambiarModo(true)">Compra pendiente</button>
+          </div>
+          @if (modoCompra()) { <p>Guarda tu compra sin conexión. Al reconectar revisa el total actualizado y continúa al pago desde Historial.</p> }
+        }
+
         @if (offline.copia()?.sucursales?.length) {
           <label for="sucursal">Sucursal</label>
           <select
@@ -245,15 +449,24 @@
               ><input type="checkbox" [formControl]="efectivo" /> Recibí este importe en
               efectivo</label
             >
-          } @else {
+          } @else if (!modoCompra()) {
             <label for="fecha-cita">Fecha de cita</label>
             <input id="fecha-cita" type="date" [formControl]="fechaCita" />
           }
           <button
             type="submit"
-            [disabled]="guardando() || (offline.puedeVender() ? !efectivo.value : !fechaCita.value)"
+            [disabled]="
+              guardando() ||
+              (offline.puedeVender() ? !efectivo.value : !modoCompra() && !fechaCita.value)
+            "
           >
-            {{ offline.puedeVender() ? 'Guardar venta de contado' : 'Guardar reserva' }}
+            {{
+              offline.puedeVender()
+                ? 'Guardar venta de contado'
+                : modoCompra()
+                  ? 'Guardar compra pendiente'
+                  : 'Guardar reserva'
+            }}
           </button>
         </form>
       }

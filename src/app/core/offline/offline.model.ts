@@ -40,7 +40,8 @@ export interface VarianteOffline {
   precio_centavos: number | null;
 }
 
-export type TipoOperacion = 'VENTA' | 'RESERVA';
+export type TipoOperacion =
+  'VENTA' | 'RESERVA' | 'COMPRA' | 'CAMBIO' | 'REVISION_CAMBIO' | 'ENTREGA_CAMBIO';
 export interface LineaOffline {
   producto_variante_id: number;
   cantidad: number;
@@ -54,6 +55,9 @@ export interface HistorialOffline {
   total: string | number;
   fecha: string;
   sucursal?: number;
+  items?: LineaOffline[];
+  orden_id?: number;
+  medio?: string;
   detalles?: { producto?: string; producto_variante_id?: number; cantidad: number }[];
 }
 export interface DescargaOffline {
@@ -61,6 +65,7 @@ export interface DescargaOffline {
   sucursales: SucursalOffline[];
   catalogo: Record<number, VarianteOffline[]>;
   historial: HistorialOffline[];
+  posventa?: DescargaCambios;
 }
 export interface OperacionOffline {
   uuid: string;
@@ -68,6 +73,7 @@ export interface OperacionOffline {
   sucursal: number;
   fecha: number;
   lineas: LineaOffline[];
+  datosCambio?: Record<string, unknown>;
   fechaCita?: string;
   efectivo?: number;
   estado: 'Pendiente' | 'Confirmada' | 'En conflicto' | 'Rechazada';
@@ -83,4 +89,35 @@ export interface ColaOffline {
   intentos: number;
   siguiente: number;
   reclamo?: { id: string; vence: number };
+}
+
+export interface CompraCambioOffline {
+  venta_id: number;
+  venta_codigo: string;
+  sucursal_id: number;
+  vence_cambio: string | null;
+  detalles: {
+    venta_detalle_id: number;
+    producto: string;
+    talla: string;
+    color: string;
+    cantidad_disponible: number;
+    producto_variante_id: number;
+  }[];
+}
+export interface CambioOffline {
+  id: number;
+  version: number;
+  estado: string;
+  original: {
+    sucursal_id: number;
+    venta_codigo: string;
+    motivo: string;
+    detalles: { producto: string; cantidad_solicitada: number }[];
+  };
+}
+export interface DescargaCambios {
+  politica: { cambios_habilitados: boolean; plazo_cambios: number };
+  ventas: CompraCambioOffline[];
+  cambios: CambioOffline[];
 }
