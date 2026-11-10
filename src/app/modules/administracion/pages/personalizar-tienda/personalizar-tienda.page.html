@@ -1,0 +1,306 @@
+<div class="personalizar">
+  <header class="page-head">
+    <div class="eyebrow">
+      <i class="pi pi-palette" aria-hidden="true"></i> IDENTIDAD DE TU EMPRESA
+    </div>
+    <h1>Tu tienda, a tu estilo.</h1>
+    <p>
+      Colores, imágenes y una bienvenida que hable de tu marca. Los cambios se publican al guardar.
+    </p>
+    <a routerLink="/inicio">Volver al inicio</a>
+  </header>
+  @if (error()) {
+    <div class="notice error" role="alert">
+      {{ error() }}
+      @if (!cargando()) {
+        <button type="button" (click)="cargar()" [disabled]="ocupada()">
+          Recargar configuración guardada
+        </button>
+      }
+    </div>
+  }
+  @if (aviso()) {
+    <p class="notice success" role="status">{{ aviso() }}</p>
+  }
+  @if (cargando()) {
+    <p role="status">Cargando la identidad de tu tienda…</p>
+  } @else if (guardado()) {
+    <div class="editor-layout">
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <fieldset [disabled]="ocupada()">
+          <section class="editor-card" aria-labelledby="identidad-titulo">
+            <div class="section-title">
+              <span>01</span>
+              <div>
+                <h2 id="identidad-titulo">Identidad y colores</h2>
+                <p>Una marca fácil de reconocer.</p>
+              </div>
+            </div>
+            <label for="marca-nombre">Nombre comercial</label>
+            <input
+              id="marca-nombre"
+              formControlName="nombre_comercial"
+              maxlength="100"
+              placeholder="El nombre de tu tienda"
+            />
+            <p class="hint">
+              Se muestra en la web. No cambia el nombre registrado ni el enlace de la empresa.
+            </p>
+            <div class="color-grid">
+              <div>
+                <label for="color-principal">Color principal</label>
+                <div class="color-control">
+                  <input
+                    type="color"
+                    aria-label="Selector del color principal"
+                    [value]="principal()"
+                    (input)="elegirColor('color_principal', $event)"
+                  /><input
+                    [attr.aria-invalid]="formulario.controls.color_principal.invalid" id="color-principal"
+                    formControlName="color_principal"
+                    maxlength="7"
+                    spellcheck="false"
+                    aria-describedby="colores-ayuda"
+                  />
+                </div>
+              </div>
+              <div>
+                <label for="color-secundario">Color secundario</label>
+                <div class="color-control">
+                  <input
+                    type="color"
+                    aria-label="Selector del color secundario"
+                    [value]="secundario()"
+                    (input)="elegirColor('color_secundario', $event)"
+                  /><input
+                    [attr.aria-invalid]="formulario.controls.color_secundario.invalid" id="color-secundario"
+                    formControlName="color_secundario"
+                    maxlength="7"
+                    spellcheck="false"
+                    aria-describedby="colores-ayuda"
+                  />
+                </div>
+              </div>
+            </div>
+            <p class="hint" id="colores-ayuda">
+              Usa colores oscuros con contraste mínimo de 4.5:1 sobre blanco. El principal destaca
+              botones; el secundario, enlaces y detalles.
+            </p>
+            @if (
+              formulario.controls.color_principal.invalid ||
+              formulario.controls.color_secundario.invalid
+            ) {
+              <p class="field-error">
+                Elige colores más oscuros en formato #RRGGBB. La vista previa conserva colores
+                legibles hasta que sean válidos.
+              </p>
+            }
+          </section>
+          <section class="editor-card" aria-labelledby="imagenes-titulo">
+            <div class="section-title">
+              <span>02</span>
+              <div>
+                <h2 id="imagenes-titulo">Imágenes de tu marca</h2>
+                <p>PNG, JPG o WebP. Hasta 5 MB por imagen.</p>
+              </div>
+            </div>
+            <div class="uploads">
+              <div class="upload-box">
+                <div class="logo-preview">
+                  @if (logo(); as url) {
+                    <img [src]="url" alt="Logo preparado" width="88" height="88" />
+                  } @else {
+                    <i class="pi pi-shop" aria-hidden="true"></i>
+                  }
+                </div>
+                <label for="marca-logo">Logo de la tienda</label
+                ><input
+                  id="marca-logo"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  (change)="seleccionar('logo', $event)"
+                />
+                <p class="hint">Recomendado: imagen cuadrada y fondo transparente.</p>
+                @if (logo()) {
+                  <button type="button" class="text-button" (click)="quitar('logo')">
+                    Quitar logo
+                  </button>
+                }
+              </div>
+              <div class="upload-box">
+                <div class="cover-mini">
+                  @if (portada(); as url) {
+                    <img [src]="url" alt="Portada preparada" width="280" height="120" />
+                  } @else {
+                    <i class="pi pi-image" aria-hidden="true"></i>
+                  }
+                </div>
+                <label for="marca-portada">Portada de inicio</label
+                ><input
+                  id="marca-portada"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  (change)="seleccionar('portada', $event)"
+                />
+                <p class="hint">Recomendado: fotografía horizontal, sin texto pequeño.</p>
+                @if (portada()) {
+                  <button type="button" class="text-button" (click)="quitar('portada')">
+                    Quitar portada
+                  </button>
+                }
+              </div>
+            </div>
+          </section>
+          <section class="editor-card" aria-labelledby="bienvenida-titulo">
+            <div class="section-title">
+              <span>03</span>
+              <div>
+                <h2 id="bienvenida-titulo">Tu bienvenida</h2>
+                <p>Lo primero que ven tus clientes.</p>
+              </div>
+            </div>
+            <label for="bienvenida-titulo-input">Título de bienvenida</label
+            ><input
+              id="bienvenida-titulo-input"
+              formControlName="titulo_bienvenida"
+              maxlength="100"
+              placeholder="Más que ropa, es tu estilo."
+            />
+            <label for="bienvenida-mensaje">Mensaje de bienvenida</label
+            ><textarea
+              id="bienvenida-mensaje"
+              formControlName="mensaje_bienvenida"
+              maxlength="400"
+              rows="3"
+              placeholder="Cuenta qué hace especial a tu tienda."
+            ></textarea>
+          </section>
+          <section class="editor-card" aria-labelledby="contacto-titulo">
+            <div class="section-title">
+              <span>04</span>
+              <div>
+                <h2 id="contacto-titulo">Contacto y redes</h2>
+                <p>Se mostrarán al pie de la tienda. Todos son opcionales.</p>
+              </div>
+            </div>
+            <div class="contact-grid">
+              @for (campo of contactos; track campo.clave) {
+                <div>
+                  <label [for]="'contacto-' + campo.clave">{{ campo.titulo }}</label>
+                  @if (campo.clave === 'horarios') {
+                    <textarea
+                      [id]="'contacto-' + campo.clave"
+                      [formControlName]="campo.clave"
+                      [placeholder]="campo.ejemplo"
+                      rows="3"
+                    ></textarea>
+                  } @else {
+                    <input
+                      [id]="'contacto-' + campo.clave"
+                      [formControlName]="campo.clave"
+                      [placeholder]="campo.ejemplo"
+                    />
+                  }
+                  @if (
+                    formulario.controls[campo.clave].invalid &&
+                    formulario.controls[campo.clave].touched
+                  ) {
+                    <p class="field-error">
+                      Revisa {{ campo.titulo.toLowerCase() }}. Usa HTTPS para enlaces y solo dígitos
+                      con código de país para WhatsApp.
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+          </section>
+          <div class="save-bar">
+            <button type="submit" class="primary" [disabled]="formulario.invalid || ocupada() || !formulario.dirty">
+              {{ ocupada() ? 'Guardando…' : 'Guardar y publicar' }}</button
+            ><button type="button" (click)="descartar()">Descartar vista previa</button>
+          </div>
+        </fieldset>
+      </form>
+      <aside class="preview-column" aria-label="Vista previa de la tienda">
+        <div class="preview-heading">
+          <span class="preview-dot"></span> VISTA PREVIA <small>{{ formulario.dirty ? 'Sin publicar' : 'Publicado' }}</small>
+        </div>
+        <div
+          class="preview-window" tabindex="0" role="region" aria-label="Vista previa desplazable"
+          [style.--preview-primary]="principal()"
+          [style.--preview-secondary]="secundario()"
+        >
+          <div class="browser-bar">
+            <span></span><span></span><span></span><small>Tu tienda online</small>
+          </div>
+          <div class="preview-navbar">
+            @if (logo(); as url) {
+              <img [src]="url" alt="" width="32" height="32" />
+            }
+            <strong>{{ nombre() }}</strong
+            ><i class="pi pi-shopping-bag" aria-hidden="true"></i>
+          </div>
+          <div class="preview-hero">
+            <p class="preview-kicker">NUEVA COLECCIÓN · {{ nombre() }}</p>
+            <h2>{{ borrador().titulo_bienvenida || 'Más que ropa, es tu estilo.' }}</h2>
+            <p>
+              {{
+                borrador().mensaje_bienvenida ||
+                  'Descubre las prendas y novedades que tenemos para ti.'
+              }}
+            </p>
+            <span class="preview-cta"
+              >Explorar catálogo <i class="pi pi-arrow-right" aria-hidden="true"></i
+            ></span>
+          </div>
+          @if (portada(); as url) {
+            <img
+              class="preview-cover"
+              [src]="url"
+              alt="Portada de la vista previa"
+              width="420"
+              height="210"
+            />
+          } @else {
+            <div class="preview-placeholder">
+              <i class="pi pi-image" aria-hidden="true"></i
+              ><span>El próximo estilo empieza aquí</span>
+            </div>
+          }
+          <div class="preview-products" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="preview-footer">
+            <strong>{{ nombre() }}</strong>
+            <p>{{ borrador().direccion || 'Tu dirección de contacto' }}</p>
+            <p>{{ borrador().horarios || 'Tus horarios de atención' }}</p>
+            <span>{{ borrador().telefono }}</span>
+          </div>
+        </div>
+        <p class="preview-note">
+          <i class="pi pi-eye" aria-hidden="true"></i> Solo tú ves esta propuesta hasta que la
+          publiques.
+        </p>
+        <section class="reset-card" aria-labelledby="reset-titulo">
+          <h2 id="reset-titulo">Volver al diseño base</h2>
+          <p>
+            Restablece los colores y quita el logo y la portada. Conserva el nombre, la bienvenida y
+            el contacto.
+          </p>
+          @if (confirmarReset()) {
+            <p>Esta acción se publicará y descartará la vista previa actual.</p>
+            <button type="button" (click)="restablecer()" [disabled]="ocupada()">
+              Confirmar restablecimiento</button
+            ><button type="button" class="text-button" (click)="confirmarReset.set(false)">
+              Cancelar
+            </button>
+          } @else {
+            <button type="button" (click)="confirmarReset.set(true)" [disabled]="ocupada()">
+              Restablecer diseño
+            </button>
+          }
+        </section>
+      </aside>
+    </div>
+  }
+</div>

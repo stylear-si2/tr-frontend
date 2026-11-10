@@ -3,8 +3,8 @@
     <p class="eyebrow">Panel administrativo</p>
     <h2 id="admin-title">Hola, {{ usuario()?.nombre }}</h2>
     <p class="summary">
-      Gestiona productos, catalogos, usuarios y operaciones desde el menu lateral.
-      La tienda para clientes mantiene una navegacion horizontal tipo ecommerce.
+      Gestiona productos, catalogos, usuarios y operaciones desde el menu lateral. La tienda para
+      clientes mantiene una navegacion horizontal tipo ecommerce.
     </p>
 
     <div class="admin-grid">
@@ -30,11 +30,15 @@
 } @else {
   <section class="store-hero" aria-labelledby="store-title">
     <div class="hero-copy">
-      <p class="eyebrow">StyleAR / Moda urbana</p>
-      <h1 id="store-title">Mas que ropa, es tu estilo.</h1>
+      <p class="eyebrow">{{ marca.nombre() }} / Tu tienda</p>
+      <h1 id="store-title">
+        {{ marca.actual().titulo_bienvenida || 'Más que ropa, es tu estilo.' }}
+      </h1>
       <p>
-        Basicos, oversize y camisas juveniles para armar outfits limpios,
-        comodos y faciles de combinar.
+        {{
+          marca.actual().mensaje_bienvenida ||
+            'Descubre las prendas y novedades que tenemos para ti.'
+        }}
       </p>
 
       <div class="hero-actions">
@@ -43,15 +47,27 @@
       </div>
     </div>
 
-    <div class="hero-panel" aria-label="Resumen del catalogo">
-      <span class="panel-kicker">Catalogo actualizado</span>
-      <strong>Prendas reales, stock real.</strong>
-      <p>
-        Explora el catalogo completo para filtrar por categorias, tallas,
-        colores, precios y disponibilidad.
-      </p>
-      <a routerLink="/catalogo" class="panel-action">Explorar catalogo</a>
-    </div>
+    @if (marca.portada(); as portada) {
+      <div class="tenant-cover">
+        <img
+          [src]="portada"
+          [alt]="'Portada de ' + marca.nombre()"
+          width="960"
+          height="640"
+          fetchpriority="high"
+        />
+      </div>
+    } @else {
+      <div class="hero-panel" aria-label="Resumen del catalogo">
+        <span class="panel-kicker">Catalogo actualizado</span>
+        <strong>Prendas reales, stock real.</strong>
+        <p>
+          Explora el catalogo completo para filtrar por categorias, tallas, colores, precios y
+          disponibilidad.
+        </p>
+        <a routerLink="/catalogo" class="panel-action">Explorar catalogo</a>
+      </div>
+    }
   </section>
 
   <section class="catalog-section" aria-labelledby="catalog-title">
@@ -80,85 +96,90 @@
       </div>
     } @else {
       <div class="product-grid">
-      @for (item of productosDestacados(); track item.producto_id) {
-        <article class="product-card">
-          <a
-            class="product-visual"
-            [routerLink]="['/producto', item.producto_id]"
-            aria-label="Ver detalle de {{ item.nombre }}"
-          >
-            @if (item.imagen_principal) {
-              <img [src]="item.imagen_principal" [alt]="item.nombre" />
-            } @else {
-              <span>{{ inicialesCategoria(item) }}</span>
-            }
-          </a>
-
-          <div class="product-header">
-            <span class="product-tag">{{ etiquetaProducto(item) }}</span>
-            <button
-              type="button"
-              [class.is-favorite]="esFavorito(item.producto_id)"
-              (click)="alternarFavorito(item)"
-              aria-label="Alternar favorito"
+        @for (item of productosDestacados(); track item.producto_id) {
+          <article class="product-card">
+            <a
+              class="product-visual"
+              [routerLink]="['/producto', item.producto_id]"
+              aria-label="Ver detalle de {{ item.nombre }}"
             >
-              <i class="pi pi-heart" aria-hidden="true"></i>
-            </button>
-          </div>
-
-          <h3>
-            <a [routerLink]="['/producto', item.producto_id]">{{ item.nombre }}</a>
-          </h3>
-          <p>{{ item.descripcion || 'Prenda disponible en el catalogo StyleAR.' }}</p>
-
-          <div class="product-meta">
-            <div class="price-stack" [class.has-offer]="item.tiene_promocion">
-              @if (item.tiene_promocion && item.precio_vigente) {
-                <span class="old-price">{{ formatPrecio(item.precio_vigente) }}</span>
+              @if (item.imagen_principal) {
+                <img [src]="item.imagen_principal" [alt]="item.nombre" />
+              } @else {
+                <span>{{ inicialesCategoria(item) }}</span>
               }
-              <strong>{{ formatPrecio(item.precio_final ?? item.precio_vigente) }}</strong>
+            </a>
+
+            <div class="product-header">
+              <span class="product-tag">{{ etiquetaProducto(item) }}</span>
+              <button
+                type="button"
+                [class.is-favorite]="esFavorito(item.producto_id)"
+                (click)="alternarFavorito(item)"
+                aria-label="Alternar favorito"
+              >
+                <i class="pi pi-heart" aria-hidden="true"></i>
+              </button>
             </div>
-            <span>{{ item.stock_total }} en stock</span>
-          </div>
 
-          @if (item.tiene_promocion) {
-            <span class="promo-badge">OFERTA</span>
-          }
+            <h3>
+              <a [routerLink]="['/producto', item.producto_id]">{{ item.nombre }}</a>
+            </h3>
+            <p>{{ item.descripcion || 'Prenda disponible en el catalogo StyleAR.' }}</p>
 
-          <div class="size-list" aria-label="Tallas disponibles">
-            @if (item.tallas.length === 0) {
-              <span>Talla por definir</span>
-            } @else {
-              @for (talla of item.tallas; track talla.id) {
-                <span>{{ talla.nombre }}</span>
-              }
+            <div class="product-meta">
+              <div class="price-stack" [class.has-offer]="item.tiene_promocion">
+                @if (item.tiene_promocion && item.precio_vigente) {
+                  <span class="old-price">{{ formatPrecio(item.precio_vigente) }}</span>
+                }
+                <strong>{{ formatPrecio(item.precio_final ?? item.precio_vigente) }}</strong>
+              </div>
+              <span>{{ item.stock_total }} en stock</span>
+            </div>
+
+            @if (item.tiene_promocion) {
+              <span class="promo-badge">OFERTA</span>
             }
-          </div>
 
-          <div class="color-list" aria-label="Colores disponibles">
-            @if (item.colores.length === 0) {
-              <span class="color-name">Color por definir</span>
-            } @else {
-              @for (color of item.colores; track color.id) {
-                <span
-                  [class.color-name]="!color.hex"
-                  [style.background]="color.hex || 'transparent'"
-                  [title]="color.nombre"
-                >
-                  @if (!color.hex) {
-                    {{ color.nombre }}
-                  }
-                </span>
+            <div class="size-list" aria-label="Tallas disponibles">
+              @if (item.tallas.length === 0) {
+                <span>Talla por definir</span>
+              } @else {
+                @for (talla of item.tallas; track talla.id) {
+                  <span>{{ talla.nombre }}</span>
+                }
               }
-            }
-          </div>
+            </div>
 
-          <button [appOperacionNueva]="false" type="button" class="cart-button" (click)="agregarAlCarrito(item)">
-            <i class="pi pi-shopping-cart" aria-hidden="true"></i>
-            Elegir variante
-          </button>
-        </article>
-      }
+            <div class="color-list" aria-label="Colores disponibles">
+              @if (item.colores.length === 0) {
+                <span class="color-name">Color por definir</span>
+              } @else {
+                @for (color of item.colores; track color.id) {
+                  <span
+                    [class.color-name]="!color.hex"
+                    [style.background]="color.hex || 'transparent'"
+                    [title]="color.nombre"
+                  >
+                    @if (!color.hex) {
+                      {{ color.nombre }}
+                    }
+                  </span>
+                }
+              }
+            </div>
+
+            <button
+              [appOperacionNueva]="false"
+              type="button"
+              class="cart-button"
+              (click)="agregarAlCarrito(item)"
+            >
+              <i class="pi pi-shopping-cart" aria-hidden="true"></i>
+              Elegir variante
+            </button>
+          </article>
+        }
       </div>
     }
   </section>

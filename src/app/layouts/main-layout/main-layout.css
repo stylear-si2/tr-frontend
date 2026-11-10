@@ -159,7 +159,7 @@
 .menu-group a:focus-visible,
 .menu-group .active-link {
   outline: none;
-  background: #4d6238;
+  background: var(--color-accent);
   color: var(--color-surface);
 }
 
@@ -634,3 +634,17 @@
 }
 
 .menu-group a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.tenant-logo { object-fit: contain; border-radius: 8px; background: white; flex-shrink: 0; }
+.shop-brand { display: inline-flex; gap: 10px; align-items: center; min-width: 0; overflow-wrap: anywhere; }
+.brand-title { overflow-wrap: anywhere; }
+.tenant-footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:24px; padding:32px clamp(16px,4vw,48px); border-top:1px solid var(--color-border); background:white; }
+.tenant-footer p { margin:.6rem 0; max-width:40rem; overflow-wrap:anywhere; }
+.tenant-footer nav { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+.tenant-footer a { color:var(--color-accent); text-underline-offset:4px; }
+.tenant-hours { white-space:pre-line; }
+
+.sidebar .brand-subtitle, .sidebar .menu-group-toggle, .sidebar .menu-group a i { color: #fff; }
+.sidebar .brand-mark { color: #151515; }
+
+.brand > div {min-width:0;}

@@ -15,9 +15,13 @@
       aria-label="Navegacion administrativa"
     >
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true">SA</span>
+        @if (marca.logo(); as logo) {
+          <img class="tenant-logo" [src]="logo" alt="" width="48" height="48" />
+        } @else {
+          <span class="brand-mark" aria-hidden="true">SA</span>
+        }
         <div>
-          <p class="brand-title">StyleAR</p>
+          <p class="brand-title">{{ marca.nombre() }}</p>
           <p class="brand-subtitle">Panel admin</p>
         </div>
       </div>
@@ -126,8 +130,12 @@
       <a
         class="shop-brand"
         routerLink="/inicio"
-        [attr.aria-label]="'Ir al inicio de ' + (empresa()?.nombre || 'la tienda')"
-        >{{ empresa()?.nombre || 'StyleAR' }}</a
+        [attr.aria-label]="'Ir al inicio de ' + marca.nombre()"
+      >
+        @if (marca.logo(); as logo) {
+          <img class="tenant-logo" [src]="logo" alt="" width="44" height="44" />
+        }
+        {{ marca.nombre() }}</a
       >
 
       <nav class="shop-nav" aria-label="Navegacion de tienda">
@@ -192,6 +200,40 @@
       <router-outlet />
     </main>
 
+    <footer class="tenant-footer" aria-label="Información de la tienda">
+      <div>
+        <strong>{{ marca.nombre() }}</strong>
+        @if (marca.actual().direccion) {
+          <p>{{ marca.actual().direccion }}</p>
+        }
+        @if (marca.actual().horarios) {
+          <p class="tenant-hours">{{ marca.actual().horarios }}</p>
+        }
+      </div>
+      <nav aria-label="Contacto y redes sociales de la tienda">
+        @if (marca.actual().telefono) {
+          <span>{{ marca.actual().telefono }}</span>
+        }
+        @if (marca.whatsapp()) {
+          <a [href]="marca.whatsapp()" target="_blank" rel="noopener noreferrer"
+            >WhatsApp <i class="pi pi-external-link" aria-hidden="true"></i
+          ></a>
+        }
+        @if (marca.actual().instagram) {
+          <a [href]="marca.actual().instagram" target="_blank" rel="noopener noreferrer"
+            >Instagram</a
+          >
+        }
+        @if (marca.actual().facebook) {
+          <a [href]="marca.actual().facebook" target="_blank" rel="noopener noreferrer">Facebook</a>
+        }
+        @if (marca.actual().sitio_web) {
+          <a [href]="marca.actual().sitio_web" target="_blank" rel="noopener noreferrer"
+            >Sitio web</a
+          >
+        }
+      </nav>
+    </footer>
     <app-asistente-chat />
   </div>
 }

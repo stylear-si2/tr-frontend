@@ -1,3 +1,4 @@
+import { AparienciaService } from '../../../../core/services/apariencia.service';
 import { OperacionNuevaDirective } from '../../../../core/directives/operacion-nueva.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
@@ -16,6 +17,7 @@ import { CatalogoPublicoService } from '../../services/catalogo-publico.service'
   templateUrl: './inicio.page.html',
 })
 export class InicioPage implements OnInit {
+  protected readonly marca = inject(AparienciaService);
   private readonly authService = inject(AuthService);
   private readonly catalogoService = inject(CatalogoPublicoService);
   private readonly recomendacionesService = inject(RecomendacionesService);

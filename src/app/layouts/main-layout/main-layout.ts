@@ -1,3 +1,4 @@
+import { AparienciaService } from '../../core/services/apariencia.service';
 import { EstadoEmpresaComponent } from '../../shared/components/estado-empresa/estado-empresa.component';
 import { EmpresaContextoService } from '../../core/services/empresa-contexto.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -38,10 +39,19 @@ const PROVEEDOR = ['PROVEEDOR'];
     EstadoEmpresaComponent,
   ],
   selector: 'app-main-layout',
+  host: {
+    '[style.--color-primary]': 'marca.actual().color_principal',
+    '[style.--color-accent]': 'marca.actual().color_secundario',
+    '[style.--color-primary-hover]': 'hoverMarca',
+    '[style.--color-accent-soft]': 'suaveMarca',
+  },
   styleUrl: './main-layout.css',
   templateUrl: './main-layout.html',
 })
 export class MainLayout {
+  protected readonly marca = inject(AparienciaService);
+  protected readonly hoverMarca = 'color-mix(in srgb, var(--color-primary), black 20%)';
+  protected readonly suaveMarca = 'color-mix(in srgb, var(--color-accent) 15%, white)';
   protected readonly offline = inject(OfflineService);
   protected readonly empresa = inject(EmpresaContextoService).empresa;
   private readonly authService = inject(AuthService);
@@ -132,7 +142,12 @@ export class MainLayout {
       icon: 'pi pi-th-large',
       items: [
         { label: 'Mi plan', path: '/mi-plan', icon: 'pi pi-list', roles: ADMIN },
-        { label: 'Dashboard', path: '/dashboard', icon: 'pi pi-chart-line', roles: ADMIN_O_ENCARGADO },
+        {
+          label: 'Dashboard',
+          path: '/dashboard',
+          icon: 'pi pi-chart-line',
+          roles: ADMIN_O_ENCARGADO,
+        },
         { label: 'Perfil', path: '/perfil', icon: 'pi pi-user' },
         {
           label: 'Panel proveedor',
@@ -160,7 +175,18 @@ export class MainLayout {
       title: 'ADMINISTRACION',
       icon: 'pi pi-briefcase',
       items: [
-        { label: 'Respaldos de mi empresa', path: '/respaldos', icon: 'pi pi-database', roles: ADMIN },
+        {
+          label: 'Personalizar tienda',
+          path: '/personalizar-tienda',
+          icon: 'pi pi-palette',
+          roles: ADMIN,
+        },
+        {
+          label: 'Respaldos de mi empresa',
+          path: '/respaldos',
+          icon: 'pi pi-database',
+          roles: ADMIN,
+        },
         { label: 'Productos', path: '/productos', icon: 'pi pi-shopping-bag', roles: ADMIN },
         { label: 'Proveedores', path: '/proveedores', icon: 'pi pi-truck', roles: ADMIN },
         { label: 'Ciudades', path: '/ciudades', icon: 'pi pi-map-marker', roles: ADMIN },
@@ -222,8 +248,18 @@ export class MainLayout {
       title: 'REPORTES',
       icon: 'pi pi-chart-bar',
       items: [
-        { label: 'Reportes', path: '/reportes', icon: 'pi pi-file-chart', roles: ADMIN_O_ENCARGADO },
-        { label: 'Analítica inteligente', path: '/analitica', icon: 'pi pi-chart-line', roles: ADMIN_O_ENCARGADO },
+        {
+          label: 'Reportes',
+          path: '/reportes',
+          icon: 'pi pi-file-chart',
+          roles: ADMIN_O_ENCARGADO,
+        },
+        {
+          label: 'Analítica inteligente',
+          path: '/analitica',
+          icon: 'pi pi-chart-line',
+          roles: ADMIN_O_ENCARGADO,
+        },
       ],
     },
   ];
