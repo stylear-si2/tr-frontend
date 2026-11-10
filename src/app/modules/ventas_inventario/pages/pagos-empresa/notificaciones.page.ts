@@ -18,7 +18,7 @@ import {
   selector: 'app-notificaciones',
   imports: [DatePipe],
   templateUrl: './notificaciones.page.html',
-  styleUrl: './pagos-empresa.page.css',
+  styleUrl: './notificaciones.page.css',
 })
 export class NotificacionesPage {
   private readonly api = inject(PagoService);
@@ -26,6 +26,16 @@ export class NotificacionesPage {
   private readonly cambios = inject(CambioContextoService);
   private readonly router = inject(Router);
   protected readonly categorias = CATEGORIAS_NOTIFICACION;
+  protected readonly tipoAviso: Record<CategoriaNotificacion, { nombre: string; icono: string }> = {
+    GENERAL: { nombre: 'General', icono: 'pi-bell' },
+    COMPRA: { nombre: 'Compra', icono: 'pi-shopping-bag' },
+    PAGO: { nombre: 'Pago', icono: 'pi-credit-card' },
+    RESERVA: { nombre: 'Reserva', icono: 'pi-calendar' },
+    ENTREGA: { nombre: 'Entrega', icono: 'pi-truck' },
+    CAMBIO: { nombre: 'Cambio', icono: 'pi-arrow-right-arrow-left' },
+    DEVOLUCION: { nombre: 'Devolución', icono: 'pi-replay' },
+    REEMBOLSO: { nombre: 'Reembolso', icono: 'pi-wallet' },
+  };
   protected readonly notas = signal<NotificacionPropia[]>([]);
   protected readonly cargando = signal(false);
   protected readonly ocupado = signal(false);
@@ -41,7 +51,7 @@ export class NotificacionesPage {
     null,
   );
   private originales: Partial<Record<CategoriaNotificacion, boolean>> = {};
-  protected readonly estado = signal<EstadoNotificacion | null>(null);
+  protected readonly estado = signal<{ id: number; datos: EstadoNotificacion } | null>(null);
   private revision = 0;
   constructor() {
     this.cambios.cambio$.pipe(takeUntilDestroyed()).subscribe(() => {
@@ -152,7 +162,11 @@ export class NotificacionesPage {
     });
   }
   protected trazabilidad(n: NotificacionPropia): void {
-    this.operar(this.api.estadoNotificacion(n.id), (r) => this.estado.set(r));
+    if (this.estado()?.id === n.id) {
+      this.estado.set(null);
+      return;
+    }
+    this.operar(this.api.estadoNotificacion(n.id), (datos) => this.estado.set({ id: n.id, datos }));
   }
   protected abrir(n: NotificacionPropia): void {
     this.operar(this.api.destinoNotificacion(n.id), (d) => {

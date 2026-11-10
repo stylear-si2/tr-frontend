@@ -1,126 +1,232 @@
-<h1>Mis notificaciones</h1>
-<p>Consulta las actualizaciones de tu cuenta en esta empresa, aunque no recibas avisos push.</p>
-<p role="status">
-  {{ noLeidas() }} sin leer en toda tu bandeja · {{ total() }} resultados del filtro
-</p>
-<div class="grid">
-  <label for="notas-lectura"
-    >Lectura<select
-      id="notas-lectura"
-      [value]="leida() === null ? '' : leida() ? 'true' : 'false'"
-      (change)="filtrar('leida', $event)"
+<header class="portada">
+  <div>
+    <p class="ceja"><i class="pi pi-bell" aria-hidden="true"></i> Bandeja de avisos</p>
+    <h1>Mis notificaciones</h1>
+    <p class="introduccion">Consulta las novedades de tu cuenta en esta empresa.</p>
+  </div>
+  <p class="resumen" role="status">
+    <span class="contador" [class.con-pendientes]="noLeidas() > 0">
+      {{ noLeidas() }} sin leer en toda tu bandeja
+    </span>
+    <span>{{ total() }} {{ total() === 1 ? 'resultado' : 'resultados' }} del filtro</span>
+  </p>
+</header>
+
+<section class="barra" aria-label="Filtros y acciones">
+  <div class="filtros">
+    <div class="filtro">
+      <label for="notas-lectura">Lectura</label>
+      <select
+        id="notas-lectura"
+        [value]="leida() === null ? '' : leida() ? 'true' : 'false'"
+        (change)="filtrar('leida', $event)"
+      >
+        <option value="">Todas</option>
+        <option value="false">Sin leer</option>
+        <option value="true">Leídas</option>
+      </select>
+    </div>
+    <div class="filtro">
+      <label for="notas-categoria">Categoría</label>
+      <select
+        id="notas-categoria"
+        [value]="categoria() ?? ''"
+        (change)="filtrar('categoria', $event)"
+      >
+        <option value="">Todas</option>
+        @for (c of categorias; track c) {
+          <option [value]="c">{{ tipoAviso[c].nombre }}</option>
+        }
+      </select>
+    </div>
+  </div>
+  <div class="acciones acciones-barra">
+    <button
+      type="button"
+      class="boton"
+      aria-label="Actualizar notificaciones"
+      (click)="cargar()"
+      [disabled]="cargando() || ocupado()"
     >
-      <option value="">Todas</option>
-      <option value="false">Sin leer</option>
-      <option value="true">Leídas</option>
-    </select></label
-  >
-  <label for="notas-categoria"
-    >Categoría<select
-      id="notas-categoria"
-      [value]="categoria() ?? ''"
-      (change)="filtrar('categoria', $event)"
+      <i class="pi pi-refresh" aria-hidden="true"></i> Actualizar
+    </button>
+    <button
+      #botonPreferencias
+      type="button"
+      class="boton"
+      aria-label="Preferencias de avisos"
+      [attr.aria-expanded]="preferencias() !== null"
+      [attr.aria-controls]="preferencias() ? 'panel-preferencias' : null"
+      (click)="verPreferencias()"
+      [disabled]="ocupado()"
     >
-      <option value="">Todas</option>
-      @for (c of categorias; track c) {
-        <option [value]="c">{{ c }}</option>
-      }
-    </select></label
-  >
-</div>
-<button type="button" (click)="cargar()" [disabled]="cargando() || ocupado()">
-  Actualizar notificaciones
-</button>
-<button type="button" (click)="todas()" [disabled]="ocupado() || noLeidas() === 0">
-  Marcar todas como leídas
-</button>
-<button type="button" (click)="verPreferencias()" [disabled]="ocupado()">
-  Preferencias de avisos
-</button>
+      <i class="pi pi-cog" aria-hidden="true"></i> Preferencias
+    </button>
+    <button
+      type="button"
+      class="boton marcar-todas"
+      (click)="todas()"
+      [disabled]="ocupado() || noLeidas() === 0"
+    >
+      <i class="pi pi-check-circle" aria-hidden="true"></i> Marcar todas como leídas
+    </button>
+  </div>
+</section>
+
 @if (cargando()) {
-  <p role="status">Consultando bandeja…</p>
+  <p class="mensaje" role="status">Actualizando bandeja…</p>
 }
 @if (error()) {
-  <p role="alert">{{ error() }}</p>
+  <p class="mensaje error" role="alert">{{ error() }}</p>
 }
 @if (aviso()) {
-  <p role="status">{{ aviso() }}</p>
+  <p class="mensaje" role="status">{{ aviso() }}</p>
 }
+
 @if (preferencias(); as p) {
-  <section aria-labelledby="notas-preferencias">
+  <section id="panel-preferencias" class="panel-preferencias" aria-labelledby="notas-preferencias">
     <h2 id="notas-preferencias">Preferencias de avisos push</h2>
     <p>
-      Desactivar una categoría silencia sus avisos push; no borra ni evita las actualizaciones de
-      esta bandeja.
+      Elige qué avisos recibir en tu dispositivo. Tu bandeja conserva todas las actualizaciones.
     </p>
     <fieldset [disabled]="ocupado()">
       <legend>Categorías con avisos push</legend>
-      @for (c of categorias; track c) {
-        <label
-          ><input type="checkbox" [checked]="p[c]" (change)="cambiarPreferencia(c, $event)" />{{
-            c
-          }}</label
-        >
-      }
+      <div class="categorias-push">
+        @for (c of categorias; track c) {
+          <label>
+            <input type="checkbox" [checked]="p[c]" (change)="cambiarPreferencia(c, $event)" />
+            {{ tipoAviso[c].nombre }}
+          </label>
+        }
+      </div>
     </fieldset>
-    <button type="button" (click)="guardarPreferencias()" [disabled]="ocupado()">
-      Guardar preferencias</button
-    ><button type="button" (click)="preferencias.set(null)" [disabled]="ocupado()">
-      Cerrar preferencias
-    </button>
-  </section>
-}
-@for (n of notas(); track n.id) {
-  <article>
-    <h2>{{ n.titulo }}</h2>
-    <p>{{ n.mensaje }}</p>
-    <p>
-      {{ n.categoria }} · {{ n.creado_en | date: 'dd/MM/yyyy HH:mm' }} ·
-      {{ n.leida ? 'Leída' : 'Sin leer' }}
-    </p>
-    <button type="button" (click)="abrir(n)" [disabled]="ocupado()">
-      Abrir actualización #{{ n.id }}
-    </button>
-    @if (!n.leida) {
-      <button type="button" (click)="leer(n)" [disabled]="ocupado()">
-        Marcar como leída #{{ n.id }}
+    <div class="acciones">
+      <button
+        type="button"
+        class="boton primario"
+        (click)="guardarPreferencias()"
+        [disabled]="ocupado()"
+      >
+        Guardar preferencias
       </button>
-    }
-    <button type="button" (click)="trazabilidad(n)" [disabled]="ocupado()">
-      Estado del aviso #{{ n.id }}
-    </button>
-  </article>
-} @empty {
-  @if (!cargando() && !error()) {
-    <p>No hay notificaciones con estos filtros.</p>
-  }
-}
-<nav aria-label="Páginas de notificaciones">
-  <button type="button" (click)="cargar(pagina() - 1)" [disabled]="cargando() || pagina() <= 1">
-    Anterior</button
-  ><span>Página {{ pagina() }} de {{ paginas() }}</span
-  ><button
-    type="button"
-    (click)="cargar(pagina() + 1)"
-    [disabled]="cargando() || pagina() >= paginas()"
-  >
-    Siguiente
-  </button>
-</nav>
-@if (estado(); as e) {
-  <section aria-labelledby="notas-estado">
-    <h2 id="notas-estado">Estado del aviso</h2>
-    <p>
-      {{ e.leida ? 'Leído en la bandeja' : 'Sin leer en la bandeja' }} ·
-      {{ e.leida_en | date: 'dd/MM/yyyy HH:mm' }}
-    </p>
-    <p>
-      {{ e.aceptadas_fcm }} aceptadas por Firebase · {{ e.pendientes }} pendientes ·
-      {{ e.fallidas }} fallidas · {{ e.omitidas }} omitidas
-    </p>
-    <p>
-      Firebase puede aceptar un envío sin que el aviso aparezca en pantalla. Este estado no confirma
-      que lo hayas visto.
-    </p>
+      <button
+        type="button"
+        class="boton"
+        (click)="preferencias.set(null); botonPreferencias.focus()"
+        [disabled]="ocupado()"
+      >
+        Cerrar preferencias
+      </button>
+    </div>
   </section>
+}
+
+<section class="bandeja" aria-label="Notificaciones" [attr.aria-busy]="cargando()">
+  @for (n of notas(); track n.id) {
+    <article
+      class="notificacion"
+      [class.sin-leer]="!n.leida"
+      [attr.aria-labelledby]="'nota-titulo-' + n.id"
+    >
+      <span class="icono-notificacion" aria-hidden="true">
+        <i [class]="'pi ' + tipoAviso[n.categoria].icono"></i>
+      </span>
+      <div class="contenido">
+        <div class="metadatos">
+          <span class="categoria">{{ tipoAviso[n.categoria].nombre }}</span>
+          <time [attr.datetime]="n.creado_en">{{ n.creado_en | date: 'dd/MM/yyyy HH:mm' }}</time>
+          <span class="lectura">{{ n.leida ? 'Leída' : 'Sin leer' }}</span>
+        </div>
+        <h2 [id]="'nota-titulo-' + n.id">{{ n.titulo }}</h2>
+        <p class="descripcion">{{ n.mensaje }}</p>
+        <div class="acciones acciones-nota">
+          <button
+            type="button"
+            class="boton abrir"
+            (click)="abrir(n)"
+            [attr.aria-label]="'Abrir actualización #' + n.id"
+            [disabled]="ocupado()"
+          >
+            Abrir actualización <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          </button>
+          @if (!n.leida) {
+            <button
+              type="button"
+              class="boton"
+              (click)="leer(n)"
+              [attr.aria-label]="'Marcar como leída #' + n.id"
+              [disabled]="ocupado()"
+            >
+              <i class="pi pi-check" aria-hidden="true"></i> Marcar como leída
+            </button>
+          }
+          <button
+            type="button"
+            class="boton"
+            (click)="trazabilidad(n)"
+            [attr.aria-label]="'Estado del aviso #' + n.id"
+            [attr.aria-expanded]="estado()?.id === n.id"
+            [attr.aria-controls]="estado()?.id === n.id ? 'nota-estado-' + n.id : null"
+            [disabled]="ocupado()"
+          >
+            <i class="pi pi-info-circle" aria-hidden="true"></i> Estado del aviso
+          </button>
+        </div>
+
+        @if (estado(); as detalle) {
+          @if (detalle.id === n.id) {
+            <section
+              class="detalle"
+              [id]="'nota-estado-' + n.id"
+              [attr.aria-labelledby]="'nota-estado-titulo-' + n.id"
+            >
+              <h3 [id]="'nota-estado-titulo-' + n.id">Estado del aviso</h3>
+              <p>
+                {{ detalle.datos.leida ? 'Leído en la bandeja' : 'Sin leer en la bandeja' }}
+                @if (detalle.datos.leida_en; as fecha) {
+                  · {{ fecha | date: 'dd/MM/yyyy HH:mm' }}
+                }
+              </p>
+              <p>
+                {{ detalle.datos.aceptadas_fcm }} aceptados por Firebase ·
+                {{ detalle.datos.pendientes }} pendientes · {{ detalle.datos.fallidas }} fallidos ·
+                {{ detalle.datos.omitidas }} omitidos
+              </p>
+              <p>La aceptación del envío en Firebase no confirma que hayas visto el aviso.</p>
+            </section>
+          }
+        }
+      </div>
+    </article>
+  } @empty {
+    @if (!cargando() && !error()) {
+      <div class="vacio">
+        <i class="pi pi-inbox" aria-hidden="true"></i>
+        <h2>No hay notificaciones con estos filtros.</h2>
+        <p>Las novedades de tu cuenta aparecerán en esta bandeja.</p>
+      </div>
+    }
+  }
+</section>
+
+@if (total() > 0) {
+  <nav class="paginacion" aria-label="Páginas de notificaciones">
+    <button
+      type="button"
+      class="boton"
+      (click)="cargar(pagina() - 1)"
+      [disabled]="cargando() || pagina() <= 1"
+    >
+      <i class="pi pi-chevron-left" aria-hidden="true"></i> Anterior
+    </button>
+    <span>Página {{ pagina() }} de {{ paginas() }}</span>
+    <button
+      type="button"
+      class="boton"
+      (click)="cargar(pagina() + 1)"
+      [disabled]="cargando() || pagina() >= paginas()"
+    >
+      Siguiente <i class="pi pi-chevron-right" aria-hidden="true"></i>
+    </button>
+  </nav>
 }

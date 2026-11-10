@@ -58,7 +58,7 @@ test('CU27 páginas, contador global, marcado, preferencias parciales y destino 
     page.getByText(new RegExp(`${resumen.no_leidas} sin leer en toda tu bandeja`)),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Preferencias de avisos', exact: true }).click();
-  await page.getByRole('checkbox', { name: 'COMPRA', exact: true }).uncheck();
+  await page.getByRole('checkbox', { name: 'Compra', exact: true }).uncheck();
   await request.put(API + '/notificaciones/preferencias', {
     headers: h,
     data: { categorias: { RESERVA: false } },
