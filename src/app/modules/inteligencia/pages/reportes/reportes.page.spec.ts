@@ -10,6 +10,7 @@ import { ReporteDetalle, ReporteFiltros } from '../../models/reporte.models';
 
 describe('Detalle remoto de reportes', () => {
   const detalle = vi.fn();
+  const analizar = vi.fn();
   const plan = { habilita: () => true, refrescar: () => of(null) };
   const catalogo = {
     tipos: [{ id: 'VENTAS', nombre: 'Ventas' }],
@@ -48,11 +49,12 @@ describe('Detalle remoto de reportes', () => {
     },
   };
   beforeEach(() => {
+    analizar.mockReset();
     detalle.mockReset().mockImplementation((_f, pagina: number) => of({ ...resultado, pagina }));
     TestBed.configureTestingModule({
       providers: [
         CambioContextoService,
-        { provide: ReportesService, useValue: { catalogo: () => of(catalogo), detalle } },
+        { provide: ReportesService, useValue: { catalogo: () => of(catalogo), detalle, analizar } },
         { provide: AuthService, useValue: { tieneRol: () => false } },
         { provide: EstadoPlanService, useValue: plan },
       ],
@@ -71,6 +73,17 @@ describe('Detalle remoto de reportes', () => {
     expect(c['totalPaginas']()).toBe(260);
     expect(c['indicadores']()).toContainEqual({ label: 'Importe BOB', valor: '10400.00' });
     expect(c['filtros']().sucursal_id).toBe(7);
+  });
+  it('descarta el análisis si cambió la sesión antes de recibirlo', () => {
+    const pendiente = new Subject();
+    analizar.mockReturnValue(pendiente);
+    const c = TestBed.createComponent(ReportesPage).componentInstance;
+    c['generar']();
+    c['analizarReporte']();
+    TestBed.inject(CambioContextoService).invalidar();
+    pendiente.next({ id: 'anterior', narrativa: 'No debe mostrarse' });
+    expect(c['analisis']()).toBeNull();
+    expect(c['analizando']()).toBe(false);
   });
   it('descarta una respuesta tardía después de cambiar de sesión', () => {
     const pendiente = new Subject<ReporteDetalle>();

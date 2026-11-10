@@ -333,6 +333,30 @@
           </button>
         </div>
       </div>
+      <section class="analysis-card" aria-labelledby="analisis-titulo" [attr.aria-busy]="analizando()">
+        <div class="section-heading">
+          <div><p class="eyebrow">Lectura de resultados</p><h3 id="analisis-titulo">Análisis inteligente</h3>
+          <p>Una explicación basada en los indicadores del reporte y un gráfico adecuado a tus datos.</p></div>
+          <button type="button" class="secondary-button" [disabled]="analizando() || cargando() || !plan.habilita('reportes_interpretacion')" (click)="analizarReporte()">{{ analizando() ? 'Analizando…' : analisis() ? 'Actualizar análisis' : 'Analizar con IA' }}</button>
+        </div>
+        @if (errorAnalisis()) { <p class="error" role="alert">{{ errorAnalisis() }}</p> }
+        @if (analisis(); as a) {
+          <p class="analysis-origin">{{ a.motor === 'REGLAS' ? 'Resumen automático · IA no disponible' : a.motor === 'SIN_DATOS' ? 'Sin datos para analizar' : 'Generado con IA · Revisa los datos de respaldo' }}</p>
+          <p class="analysis-narrative">{{ a.narrativa }}</p>
+          @if (a.conclusiones.length) { <ul>@for (conclusion of a.conclusiones; track $index) { <li>{{ conclusion }}</li> }</ul> }
+          <p class="analysis-chart"><strong>Gráfico seleccionado:</strong> {{ a.motivo_grafico }}</p>
+          @for (advertencia of a.advertencias; track $index) { <p class="notice">{{ advertencia }}</p> }
+          @if (a.audio_disponible && plan.habilita('reportes_voz')) {
+            @if (audioUrl()) {
+              <audio #audioAnalisis controls preload="none" [src]="audioUrl()" aria-label="Escuchar análisis del reporte"></audio>
+              <p class="audio-help">Puedes reproducir o pausar el audio sin volver a generarlo.</p>
+            } @else {
+              <button type="button" class="secondary-button" [disabled]="generandoAudio()" (click)="escucharAnalisis()">{{ generandoAudio() ? 'Preparando voz…' : 'Escuchar análisis' }}</button>
+              <p class="audio-help">La voz se genera solo al solicitarla.</p>
+            }
+          }
+        } @else { <p class="audio-help" role="status">{{ analizando() ? 'La IA está revisando el resultado completo. La tabla sigue disponible.' : 'El análisis es opcional. No se generan llamadas de IA al cambiar de página.' }}</p> }
+      </section>
       <div class="metrics">
         @for (indicador of indicadores(); track indicador.label) {
           <article>

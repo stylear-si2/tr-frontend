@@ -73,3 +73,12 @@ tbody tr:hover { background: #f7f9f4; }
 button, input, select { min-height: 44px; }
 @media (max-width: 850px) { .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 540px) { .filters-grid { grid-template-columns: 1fr; } .voice-panel { padding: 16px; } .mode-switch { flex-wrap: wrap; } .pagination { flex-wrap: wrap; } .metrics { grid-template-columns: 1fr; } .chart-box { height: 290px; } }
+
+.analysis-card { padding: clamp(16px,2vw,26px); margin-bottom: 24px; border: 1px solid #cdd8c1; border-radius: 16px; background: linear-gradient(120deg,#f4f7ed,#fff); }
+.analysis-card h3 { margin: 0 0 8px; font-size: 1.25rem; }
+.analysis-card .section-heading { margin-bottom: 12px; }
+.analysis-origin, .audio-help { color: #4f5c49; font-size: .85rem; line-height: 1.6; }
+.analysis-narrative { font-size: 1.05rem; line-height: 1.8; max-width: 80ch; }
+.analysis-card li { line-height: 1.7; margin-block: 6px; }
+.analysis-chart { padding-top: 14px; border-top: 1px solid #dce3d4; font-size: .9rem; line-height: 1.6; }
+.analysis-card audio { width: min(100%,480px); margin-top: 14px; }

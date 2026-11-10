@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { API_BASE_URL } from '../../../core/config/api.config';
 import {
   Interpretacion,
+  AnalisisReporte,
   ReporteCatalogo,
   ReporteFiltros,
   ReporteResultado,
@@ -28,8 +29,14 @@ export class ReportesService {
   generar(filtros: ReporteFiltros) {
     return this.http.post<ReporteResultado>(`${this.base}/generar`, filtros);
   }
-  exportar(filtros: ReporteFiltros, formato: 'pdf' | 'excel') {
-    return this.http.post(`${this.base}/exportar/${formato}`, filtros, { responseType: 'blob' });
+  analizar(filtros: ReporteFiltros, firmaResultado?: string) {
+    return this.http.post<AnalisisReporte>(`${this.base}/analizar`, { ...filtros, firma_resultado: firmaResultado });
+  }
+  audio(analisisId: string) {
+    return this.http.post(`${this.base}/audio`, { analisis_id: analisisId }, { responseType: 'blob' });
+  }
+  exportar(filtros: ReporteFiltros, formato: 'pdf' | 'excel', analisisId?: string) {
+    return this.http.post(`${this.base}/exportar/${formato}`, { ...filtros, analisis_id: analisisId }, { responseType: 'blob' });
   }
   detalle(filtros: ReporteFiltros, pagina = 1, tamano = 20) {
     return this.http.post<ReporteDetalle>(`${this.base}/detalle`, { ...filtros, pagina, tamano });

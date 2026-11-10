@@ -11,6 +11,7 @@ for (const ancho of [1440, 390, 320]) {
       localStorage.setItem('backend_tr_usuario', JSON.stringify(usuario));
       localStorage.setItem('stylear_empresa_codigo_v1', 'demo');
     }, { usuario, token });
+    let audios = 0;
     const filtros = { tipo: 'VENTAS_POR_SUCURSAL', fecha_desde: '2026-09-01', fecha_hasta: '2026-11-10', agrupacion: 'MES', sucursal_id: null, categoria_id: null, producto_id: null, solo_bajo_stock: false, limite: 10 };
     await page.route('**/*', async route => {
       const url = new URL(route.request().url());
@@ -20,6 +21,12 @@ for (const ancho of [1440, 390, 320]) {
       else if (url.pathname.endsWith('/perfil')) data = usuario;
       else if (url.pathname.endsWith('/capacidades')) data = { empresa_id: 2, operaciones_habilitadas: true, cupos: {}, funciones: Object.fromEntries(['reportes', 'reportes_interpretacion', 'reportes_voz', 'reportes_pdf', 'reportes_excel'].map(k => [k, { habilitada: true }])) };
       else if (url.pathname.endsWith('/reportes/catalogo')) data = { tipos: [{ id: 'VENTAS_POR_SUCURSAL', nombre: 'Ventas por sucursal y período' }, { id: 'PRODUCTOS_MAS_VENDIDOS', nombre: 'Productos más vendidos' }], sucursales: [{ id: 3, nombre: 'Centro', ciudad: 'Santa Cruz' }], categorias: [{ id: 8, nombre: 'Poleras' }], productos: [{ id: 12, nombre: 'Polera básica', categoria_id: 8 }] };
+      else if (url.pathname.endsWith('/reportes/analizar')) data = { id: 'b76ef1c1-a87a-4ad2-887a-c12a75687c91', narrativa: 'El reporte compara las ventas por sucursal durante los tres meses seleccionados. Octubre no presenta ventas registradas.', conclusiones: ['Consulta los importes completos en la tabla.'], grafico: 'BARRAS_AGRUPADAS', motivo_grafico: 'Permite comparar sucursales dentro de cada mes.', motor: 'GEMINI', advertencias: [], generado_en: '2026-11-10', audio_disponible: true };
+      else if (url.pathname.endsWith('/reportes/audio')) {
+        audios++;
+        const wav = Buffer.alloc(48); wav.write('RIFF'); wav.writeUInt32LE(40,4); wav.write('WAVEfmt ',8); wav.writeUInt32LE(16,16); wav.writeUInt16LE(1,20); wav.writeUInt16LE(1,22); wav.writeUInt32LE(24000,24); wav.writeUInt32LE(48000,28); wav.writeUInt16LE(2,32); wav.writeUInt16LE(16,34); wav.write('data',36); wav.writeUInt32LE(4,40);
+        return route.fulfill({ contentType: 'audio/wav', body: wav });
+      }
       else if (url.pathname.endsWith('/reportes/interpretar')) data = { interpretado: true, filtros, advertencias: [] };
       else if (url.pathname.endsWith('/reportes/detalle')) {
         expect(route.request().postDataJSON().agrupacion).toBe('MES');
@@ -38,6 +45,11 @@ for (const ancho of [1440, 390, 320]) {
     await page.getByRole('button', { name: /Generar reporte/ }).click();
     await expect(page.getByRole('heading', { name: 'Ventas por sucursal y período' })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Centro', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Analizar con IA', exact: true }).click();
+    await expect(page.getByText('El reporte compara las ventas por sucursal durante los tres meses seleccionados. Octubre no presenta ventas registradas.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Escuchar análisis', exact: true }).click();
+    await expect(page.locator('audio')).toBeVisible();
+    expect(audios).toBe(1);
     const axe = await new AxeBuilder({ page }).analyze();
     expect(axe.violations.map(v => ({ id: v.id, targets: v.nodes.map(n => n.target) }))).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();

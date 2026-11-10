@@ -19,6 +19,7 @@ import Chart from 'chart.js/auto';
 import { finalize } from 'rxjs';
 import {
   ReporteCatalogo,
+  AnalisisReporte,
   ReporteFiltros,
   ReporteDetalle,
   TipoReporte,
@@ -55,6 +56,7 @@ export class ReportesPage implements OnInit, OnDestroy {
   constructor() {
     this.cambios.cambio$.pipe(takeUntilDestroyed()).subscribe(() => {
       this.revision++;
+      this.limpiarAnalisis();
       this.resultado.set(null);
       this.filtrosResultado.set(null);
       this.catalogo.set(null);
@@ -67,6 +69,55 @@ export class ReportesPage implements OnInit, OnDestroy {
   private readonly chartCanvas = viewChild<ElementRef<HTMLCanvasElement>>('chartCanvas');
   private chart?: Chart;
   private speech?: SpeechEngine;
+  private readonly audioElement = viewChild<ElementRef<HTMLAudioElement>>('audioAnalisis');
+  protected readonly analisis = signal<AnalisisReporte | null>(null);
+  protected readonly analizando = signal(false);
+  protected readonly generandoAudio = signal(false);
+  protected readonly audioUrl = signal('');
+  protected readonly errorAnalisis = signal('');
+  private analisisRevision = 0;
+
+  private limpiarAnalisis(): void {
+    this.analisisRevision++;
+    this.analisis.set(null);
+    this.analizando.set(false);
+    this.generandoAudio.set(false);
+    this.errorAnalisis.set('');
+    this.audioElement()?.nativeElement.pause();
+    if (this.audioUrl()) URL.revokeObjectURL(this.audioUrl());
+    this.audioUrl.set('');
+  }
+  protected analizarReporte(): void {
+    const filtros = this.filtrosResultado();
+    if (!filtros || this.analizando() || !this.plan.habilita('reportes_interpretacion')) return;
+    this.limpiarAnalisis();
+    const revision = this.analisisRevision;
+    this.analizando.set(true);
+    this.service.analizar(filtros, this.resultado()?.firma_resultado).pipe(takeUntilDestroyed(this.destroy), finalize(() => {
+      if (revision === this.analisisRevision) this.analizando.set(false);
+    })).subscribe({
+      next: resultado => {
+        if (revision !== this.analisisRevision) return;
+        this.analisis.set(resultado);
+        const reporte = this.resultado();
+        if (reporte) this.dibujarGrafico(reporte);
+      },
+      error: (e: HttpErrorResponse) => { if (revision === this.analisisRevision) this.errorAnalisis.set(this.mensajeError(e)); },
+    });
+  }
+  protected escucharAnalisis(): void {
+    const analisis = this.analisis();
+    if (!analisis || this.generandoAudio() || this.audioUrl()) return;
+    const revision = this.analisisRevision;
+    this.generandoAudio.set(true);
+    this.errorAnalisis.set('');
+    this.service.audio(analisis.id).pipe(takeUntilDestroyed(this.destroy), finalize(() => {
+      if (revision === this.analisisRevision) this.generandoAudio.set(false);
+    })).subscribe({
+      next: blob => { if (revision === this.analisisRevision) this.audioUrl.set(URL.createObjectURL(blob)); },
+      error: () => { if (revision === this.analisisRevision) this.errorAnalisis.set('No se pudo preparar la voz. El análisis escrito sigue disponible.'); },
+    });
+  }
 
   protected readonly catalogo = signal<ReporteCatalogo | null>(null);
   protected readonly modo = signal<'filtros' | 'voz'>('filtros');
@@ -165,6 +216,7 @@ export class ReportesPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.limpiarAnalisis();
     this.speech?.stop();
     this.chart?.destroy();
   }
@@ -318,6 +370,8 @@ export class ReportesPage implements OnInit, OnDestroy {
       .subscribe({
         next: (r) => {
           if (revision !== this.revision) return;
+          const anterior = this.resultado();
+          if (JSON.stringify(anterior?.resumen) !== JSON.stringify(r.resumen) || JSON.stringify(anterior?.serie_grafico) !== JSON.stringify(r.serie_grafico) || JSON.stringify(this.filtrosResultado()) !== JSON.stringify(f)) this.limpiarAnalisis();
           this.resultado.set(r);
           this.filtrosResultado.set({ ...f });
           this.pagina.set(r.pagina);
@@ -347,7 +401,7 @@ export class ReportesPage implements OnInit, OnDestroy {
       return;
     }
     this.service
-      .exportar(consulta, formato)
+      .exportar(consulta, formato, this.analisis()?.id)
       .pipe(
         takeUntilDestroyed(this.destroy),
         finalize(() => this.descargando.set(false)),
@@ -376,7 +430,9 @@ export class ReportesPage implements OnInit, OnDestroy {
     this.chart?.destroy();
     const canvas = this.chartCanvas()?.nativeElement;
     if (!canvas || reporte.serie_grafico.length === 0) return;
-    const comparacion = reporte.tipo === 'VENTAS_POR_SUCURSAL';
+    const tipoIA = this.analisis()?.grafico;
+    const circular = tipoIA === 'PASTEL' || tipoIA === 'DONA';
+    const comparacion = reporte.tipo === 'VENTAS_POR_SUCURSAL' && (!tipoIA || tipoIA === 'BARRAS_AGRUPADAS');
     const serie = comparacion ? reporte.serie_grafico : reporte.serie_grafico.slice(0, 100);
     const periodos = [...new Set(serie.map(s => s.label.slice(0,10)))];
     const sucursales = [...new Set(serie.map(s => s.label.slice(13)))];
@@ -385,9 +441,9 @@ export class ReportesPage implements OnInit, OnDestroy {
       label: sucursal,
       data: periodos.map(periodo => Number(serie.find(s => s.label === periodo + ' · ' + sucursal)?.valor ?? 0)),
       borderColor: colores[i % colores.length], backgroundColor: colores[i % colores.length], fill: false,
-    })) : [{ label: reporte.titulo, data: serie.map(item => Number(item.valor)), borderColor: '#465934', backgroundColor: 'rgba(70,89,52,.22)', fill: true }];
+    })) : [{ label: reporte.titulo, data: serie.map(item => Number(item.valor)), borderColor: '#465934', backgroundColor: circular ? serie.map((_,i) => colores[i % colores.length]) : 'rgba(70,89,52,.22)', fill: !circular }];
     this.chart = new Chart(canvas, {
-      type: ['PRODUCTOS_MAS_VENDIDOS', 'INGRESOS_POR_CATEGORIA', 'VENTAS_POR_SUCURSAL', 'INVENTARIO'].includes(reporte.tipo) ? 'bar' : 'line',
+      type: tipoIA ? ({ BARRAS: 'bar', LINEAS: 'line', PASTEL: 'pie', DONA: 'doughnut', BARRAS_AGRUPADAS: 'bar' } as const)[tipoIA] : ['PRODUCTOS_MAS_VENDIDOS', 'INGRESOS_POR_CATEGORIA', 'VENTAS_POR_SUCURSAL', 'INVENTARIO'].includes(reporte.tipo) ? 'bar' : 'line',
       data: {
         labels: comparacion ? periodos : serie.map((item) => item.label),
         datasets,
@@ -395,9 +451,9 @@ export class ReportesPage implements OnInit, OnDestroy {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: comparacion, position: 'bottom' } },
-        scales: { y: { beginAtZero: true } },
-        indexAxis: reporte.tipo === 'PRODUCTOS_MAS_VENDIDOS' ? 'y' : 'x',
+        plugins: { legend: { display: comparacion || circular, position: 'bottom' } },
+        scales: circular ? {} : { y: { beginAtZero: true } },
+        indexAxis: !circular && reporte.tipo === 'PRODUCTOS_MAS_VENDIDOS' ? 'y' : 'x',
       },
     });
   }

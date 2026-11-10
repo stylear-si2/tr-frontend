@@ -59,6 +59,7 @@ export interface ReporteResultado {
 }
 
 export interface ReporteDetalle {
+  firma_resultado?: string;
   tipo: TipoReporte;
   titulo: string;
   nota: string | null;
@@ -162,4 +163,17 @@ export interface ReporteEjecucion {
   destinatario_email?: string;
   revision?: number;
   archivo_nombre?: string;
+}
+
+export type TipoGraficoReporte = 'BARRAS' | 'LINEAS' | 'PASTEL' | 'DONA' | 'BARRAS_AGRUPADAS';
+export interface AnalisisReporte {
+  id: string;
+  narrativa: string;
+  conclusiones: string[];
+  grafico: TipoGraficoReporte;
+  motivo_grafico: string;
+  motor: string;
+  advertencias: string[];
+  generado_en: string;
+  audio_disponible: boolean;
 }
