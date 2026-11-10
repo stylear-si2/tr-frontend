@@ -21,10 +21,10 @@ async function axe(page:Page){expect((await new AxeBuilder({page}).analyze()).vi
 test('CU16 administrador configura sólo su empresa y cliente prueba QR e inbox',async({page,request})=>{
   test.setTimeout(90000);
   await entrar(page,datos.a.codigo);await page.goto('/pagos-empresa');
-  await expect(page.getByRole('heading',{name:'Pagos de prueba por empresa'})).toBeVisible();await axe(page);
-  await page.getByLabel('Habilitar Stripe de prueba').check();await page.getByLabel('Habilitar QR simulado').check();
+  await expect(page.getByRole('heading',{name:'Configuración de pagos'})).toBeVisible();await axe(page);
+  await page.getByLabel('Stripe',{exact:true}).check();await page.getByLabel('Pago por QR',{exact:true}).check();
   const guardado=page.waitForResponse(r=>r.url().includes('/pagos-empresa/configuracion')&&r.request().method()==='PUT');
-  await page.getByRole('button',{name:'Guardar medios de prueba'}).click();expect((await guardado).status()).toBe(200);await expect(page.getByRole('status')).toContainText('guardada');await axe(page);
+  await page.getByRole('button',{name:'Guardar configuración'}).click();expect((await guardado).status()).toBe(200);await expect(page.getByRole('status')).toContainText('guardada');await axe(page);
   const login=await request.post('http://127.0.0.1:18127/api/v1/autenticacion/login',{data:{identificador:datos.clienteA,password:'Prueba-aislada-123',empresa_codigo:datos.a.codigo}});expect(login.ok()).toBeTruthy();
   const headers={'Authorization':'Bearer '+(await login.json()).access_token,'X-Empresa-Codigo':datos.a.codigo};
   const pendiente=await (await request.get('http://127.0.0.1:18127/api/v1/pagos-empresa/pendiente',{headers})).json();

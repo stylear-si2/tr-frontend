@@ -1,0 +1,161 @@
+<nav class="barra-superior" aria-label="Acciones de configuración de pagos">
+  <a class="enlace-volver" routerLink="/pagos">
+    <i class="pi pi-arrow-left" aria-hidden="true"></i>
+    Volver a pagos
+  </a>
+  <button type="button" class="boton secundario" (click)="cargar()" [disabled]="ocupado()">
+    <i class="pi pi-refresh" aria-hidden="true"></i>
+    Actualizar
+  </button>
+</nav>
+
+<header class="portada">
+  <div>
+    <p class="ceja">Ajustes del comercio</p>
+    <h1>Configuración de pagos</h1>
+    <p class="introduccion">Elige los medios de pago de tu tienda y consulta sus reembolsos.</p>
+  </div>
+  <p class="entorno">
+    <i class="pi pi-info-circle" aria-hidden="true"></i>
+    Demostración · Sin cobros reales
+  </p>
+</header>
+
+@if (error()) {
+  <p class="aviso error" role="alert">{{ error() }}</p>
+}
+@if (mensaje()) {
+  <p class="aviso exito" role="status">{{ mensaje() }}</p>
+}
+
+@if (config(); as cfg) {
+  <section class="panel" aria-labelledby="config-title">
+    <header class="encabezado-panel">
+      <span class="icono-panel" aria-hidden="true"><i class="pi pi-wallet"></i></span>
+      <div>
+        <h2 id="config-title">Medios de pago</h2>
+        <p>Define qué opciones podrán usar tus clientes al pagar.</p>
+      </div>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="guardar()">
+      <div class="campo">
+        <label for="titular-pago">Nombre del comercio</label>
+        <input
+          id="titular-pago"
+          formControlName="titular"
+          maxlength="180"
+          aria-describedby="titular-ayuda"
+        />
+        <small id="titular-ayuda">Se muestra al cliente al iniciar el pago.</small>
+      </div>
+
+      <fieldset class="medios">
+        <legend>Disponibles en el carrito</legend>
+        <div class="opciones">
+          <label class="opcion">
+            <span class="icono-medio" aria-hidden="true"><i class="pi pi-credit-card"></i></span>
+            <span class="texto-medio">
+              <span id="medio-stripe" class="nombre-medio">Stripe</span>
+              <span id="stripe-ayuda" class="descripcion-medio">Tarjetas de crédito y débito</span>
+              <span class="detalle-medio">
+                {{
+                  cfg.stripe_conexion === 'STRIPE_TEST'
+                    ? 'Cuenta configurada'
+                    : 'Procesamiento simulado'
+                }}
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              formControlName="stripe_habilitado"
+              aria-labelledby="medio-stripe"
+              aria-describedby="stripe-ayuda"
+            />
+          </label>
+          <label class="opcion">
+            <span class="icono-medio" aria-hidden="true"><i class="pi pi-qrcode"></i></span>
+            <span class="texto-medio">
+              <span id="medio-qr" class="nombre-medio">Pago por QR</span>
+              <span id="qr-ayuda" class="descripcion-medio"
+                >Confirmación simulada, sin transferencias</span
+              >
+            </span>
+            <input
+              type="checkbox"
+              formControlName="qr_habilitado"
+              aria-labelledby="medio-qr"
+              aria-describedby="qr-ayuda"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="acciones-formulario">
+        <button class="boton primario" type="submit" [disabled]="form.invalid || ocupado()">
+          Guardar configuración
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="reembolsos-title">
+    <header class="encabezado-panel">
+      <span class="icono-panel" aria-hidden="true"><i class="pi pi-replay"></i></span>
+      <div>
+        <h2 id="reembolsos-title">Reembolsos</h2>
+        <p>Consulta los reintegros de compras que quedaron sin completar.</p>
+      </div>
+    </header>
+
+    <div class="reembolsos">
+      @for (r of reembolsos(); track r.id) {
+        <article class="reembolso">
+          <header class="encabezado-reembolso">
+            <div>
+              <h3>Reembolso #{{ r.id }}</h3>
+              <p>Orden #{{ r.orden_id }} · {{ r.metodo }}</p>
+            </div>
+            <strong>{{ r.moneda }} {{ r.monto }}</strong>
+            <span class="estado" [class.confirmado]="r.estado === 'CONFIRMADO'">{{
+              r.estado
+            }}</span>
+          </header>
+          <p>{{ r.motivo }}</p>
+          @if (r.referencia) {
+            <p class="referencia">Referencia: {{ r.referencia }}</p>
+          }
+          @if (r.estado !== 'CONFIRMADO') {
+            <div class="acciones-reembolso">
+              @if (cfg.confirmacion_prueba) {
+                <button
+                  type="button"
+                  class="boton secundario"
+                  (click)="simular(r)"
+                  [disabled]="ocupado()"
+                >
+                  Simular reembolso #{{ r.id }}
+                </button>
+              }
+              <button
+                type="button"
+                class="boton secundario"
+                (click)="reintentar(r)"
+                [disabled]="ocupado()"
+              >
+                Consultar o reintentar con Stripe #{{ r.id }}
+              </button>
+            </div>
+          }
+        </article>
+      } @empty {
+        <div class="sin-reembolsos">
+          <strong>No hay reembolsos registrados</strong>
+          <p>Cuando se genere uno, podrás seguir su estado aquí.</p>
+        </div>
+      }
+    </div>
+  </section>
+} @else if (ocupado()) {
+  <p class="aviso" role="status">Cargando configuración de pagos…</p>
+}

@@ -4,50 +4,13 @@ import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { mensajeApi } from '../../../../core/services/error-api';
 import { PagoService } from '../../services/pago.service';
-import { ConfiguracionPagosEmpresa, ReembolsoPago, NotificacionPropia } from '../../models/pago.models';
+import { ConfiguracionPagosEmpresa, ReembolsoPago } from '../../models/pago.models';
 
 @Component({
   selector: 'app-pagos-empresa',
   imports: [ReactiveFormsModule, RouterLink],
   styleUrl: './pagos-empresa.page.css',
-  template: `
-    <a routerLink="/pagos">Volver a pagos</a>
-    <h1>Pagos de prueba por empresa</h1>
-    <p>Configura los medios de tu comercio. Este bloque no habilita cobros reales ni transferencias bancarias.</p>
-    @if (error()) { <p role="alert">{{ error() }}</p> }
-    @if (mensaje()) { <p role="status">{{ mensaje() }}</p> }
-    <button type="button" (click)="cargar()" [disabled]="ocupado()">Actualizar configuración y reembolsos</button>
-    @if (config(); as cfg) {
-      <section aria-labelledby="config-title">
-        <h2 id="config-title">Medios del comercio</h2>
-        <p>Stripe: {{ cfg.stripe_conexion }}. QR: simulación; conexión BCP pendiente de credenciales e integración bancaria.</p>
-        <p>Los secretos se configuran en el servidor para cada empresa y no se muestran en esta pantalla.</p>
-        <form [formGroup]="form" (ngSubmit)="guardar()">
-          <label for="titular-pago">Nombre del comercio para las pruebas</label>
-          <input id="titular-pago" formControlName="titular" maxlength="180" />
-          <label><input type="checkbox" formControlName="stripe_habilitado" /> Habilitar Stripe de prueba</label>
-          <label><input type="checkbox" formControlName="qr_habilitado" /> Habilitar QR simulado</label>
-          <button type="submit" [disabled]="form.invalid || ocupado()">Guardar medios de prueba</button>
-        </form>
-      </section>
-      <section aria-labelledby="reembolsos-title">
-        <h2 id="reembolsos-title">Reembolsos de compras no completadas</h2>
-        <p>Pendiente o fallido no significa que el dinero ya fue devuelto. En una simulación no se mueve dinero real.</p>
-        @for (r of reembolsos(); track r.id) {
-          <article>
-            <h3>Reembolso #{{ r.id }} · Orden #{{ r.orden_id }}</h3>
-            <p>{{ r.monto }} {{ r.moneda }} · {{ r.metodo }} · {{ r.estado }}</p>
-            <p>{{ r.motivo }}</p>
-            @if (r.referencia) { <p>Referencia: {{ r.referencia }}</p> }
-            @if (r.estado !== 'CONFIRMADO') {
-              @if (cfg.confirmacion_prueba) { <button type="button" (click)="simular(r)" [disabled]="ocupado()">Simular reembolso #{{ r.id }}</button> }
-              <button type="button" (click)="reintentar(r)" [disabled]="ocupado()">Consultar o reintentar con Stripe #{{ r.id }}</button>
-            }
-          </article>
-        } @empty { <p>No hay reembolsos registrados en este bloque.</p> }
-      </section>
-    }
-  `,
+  templateUrl: './pagos-empresa.page.html',
 })
 export class PagosEmpresaPage {
   private readonly api = inject(PagoService);
@@ -72,8 +35,9 @@ export class PagosEmpresaPage {
   protected guardar(): void {
     const cfg = this.config(); if (!cfg || this.ocupado() || this.form.invalid) return;
     this.ocupado.set(true); this.error.set('');
+    this.mensaje.set('');
     this.api.guardarConfiguracion({...this.form.getRawValue(),version:cfg.version}).pipe(finalize(() => this.ocupado.set(false))).subscribe({
-      next: actual => { this.config.set(actual); this.mensaje.set('Configuración de pruebas guardada para tu empresa.'); },
+      next: actual => { this.config.set(actual); this.mensaje.set('Configuración guardada para tu empresa.'); },
       error: (error: unknown) => this.error.set(mensajeApi(error)),
     });
   }

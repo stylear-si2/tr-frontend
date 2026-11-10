@@ -62,7 +62,7 @@
       <button type="button" (click)="actualizar()" [disabled]="cargando() || procesando()">Actualizar estado</button>
       @if (item.estado === 'PENDIENTE' && item.confirmacion_prueba) { <button type="button" (click)="cancelar()" [disabled]="procesando()">Cancelar intento</button> }
       @if (item.estado === 'PENDIENTE' && !item.confirmacion_prueba && item.checkout_url?.startsWith('https://')) {
-        <a [href]="item.checkout_url">Continuar en Stripe de prueba</a>
+        <a [href]="item.checkout_url">Continuar en Stripe</a>
       }
       <div class="actions">
         <a routerLink="/catalogo">Seguir comprando</a>
