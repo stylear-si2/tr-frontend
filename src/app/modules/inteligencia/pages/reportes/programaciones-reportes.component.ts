@@ -195,7 +195,7 @@ const texto = (valor = '', requerido = false) =>
           <label for="prog-agrupacion"
             >Agrupación<select id="prog-agrupacion" formControlName="agrupacion">
               <option value="DIA">Día</option>
-              <option value="MES">Mes</option>
+              <option value="SEMANA">Semana</option><option value="MES">Mes</option>
             </select></label
           >
           <label for="prog-estado"
@@ -287,7 +287,7 @@ export class ProgramacionesReportesComponent {
     activo: new FormControl(true, { nonNullable: true }),
     zona_horaria: texto('America/La_Paz', true),
     periodo: new FormControl<ProgramadoDatos['periodo']>('SEGUN_FRECUENCIA', { nonNullable: true }),
-    agrupacion: new FormControl<'DIA' | 'MES'>('DIA', { nonNullable: true }),
+    agrupacion: new FormControl<'DIA' | 'SEMANA' | 'MES'>('DIA', { nonNullable: true }),
     estado: texto(),
     metodo_pago: texto(),
     proveedor_pago: texto(),

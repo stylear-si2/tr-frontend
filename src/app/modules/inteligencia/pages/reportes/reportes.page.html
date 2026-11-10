@@ -2,7 +2,7 @@
   <header class="page-header">
     <p class="eyebrow">Análisis comercial</p>
     <h1>Reportes</h1>
-    <p>Consulta la actividad real de StyleAR por voz o con filtros, y descarga el resultado.</p>
+    <p>Transforma tus preguntas en decisiones. Explora ventas, productos y sucursales con los datos de tu empresa.</p>
   </header>
 
   <section class="consulta-card" aria-labelledby="consulta-titulo">
@@ -26,13 +26,19 @@
           [attr.aria-pressed]="modo() === 'voz'"
           (click)="cambiarModo('voz')"
         >
-          <i class="pi pi-microphone" aria-hidden="true"></i> Por voz
+          <i class="pi pi-microphone" aria-hidden="true"></i> Preguntar a la IA
         </button>
       </div>
     </div>
 
     @if (modo() === 'voz') {
       <div class="voice-panel">
+        <p class="help">1. Describe lo que necesitas. 2. Revisa la interpretación. 3. Genera y exporta tu reporte.</p>
+        <div class="example-list" role="group" aria-label="Ejemplos de consultas">
+          @for (ejemplo of ejemplos; track ejemplo) {
+            <button type="button" (click)="usarEjemplo(ejemplo)">{{ ejemplo }}</button>
+          }
+        </div>
         @if (!plan.habilita('reportes_interpretacion')) {
           <p>{{ plan.motivo('reportes_interpretacion') }}</p>
         }
@@ -52,7 +58,7 @@
             <i [class]="escuchando() ? 'pi pi-stop' : 'pi pi-microphone'" aria-hidden="true"></i>
           </button>
           <div>
-            <strong>{{ escuchando() ? 'Escuchando…' : 'Dicta tu consulta' }}</strong>
+            <strong>{{ escuchando() ? 'Escuchando…' : 'Escribe o dicta tu consulta' }}</strong>
             <p>Ejemplo: «Ventas de este mes en todas las sucursales».</p>
           </div>
         </div>
@@ -152,9 +158,29 @@
             (change)="actualizarFiltro('agrupacion', $event)"
           >
             <option value="DIA">Día</option>
+            <option value="SEMANA">Semana</option>
             <option value="MES">Mes</option>
           </select>
         </div>
+        @if (permiteProducto()) {
+          <div class="field">
+            <label for="reporte-categoria">Categoría</label>
+            <select id="reporte-categoria" [value]="filtros().categoria_id ?? ''" (change)="actualizarFiltro('categoria_id', $event)">
+              <option value="">Todas las categorías</option>
+              @for (categoria of catalogo()?.categorias ?? []; track categoria.id) { <option [value]="categoria.id">{{ categoria.nombre }}</option> }
+            </select>
+          </div>
+          <div class="field">
+            <label for="reporte-producto">Producto</label>
+            <select id="reporte-producto" [value]="filtros().producto_id ?? ''" (change)="actualizarFiltro('producto_id', $event)">
+              <option value="">Todos los productos</option>
+              @for (producto of productosDisponibles(); track producto.id) { <option [value]="producto.id">{{ producto.nombre }}</option> }
+            </select>
+          </div>
+        }
+        @if (filtros().tipo === 'PRODUCTOS_MAS_VENDIDOS') {
+          <div class="field"><label for="reporte-limite">Productos del ranking</label><input id="reporte-limite" type="number" min="1" max="100" [value]="filtros().limite ?? 10" (change)="actualizarFiltro('limite', $event)" /></div>
+        }
         @if (
           ['VENTAS', 'RESERVAS', 'MOVIMIENTOS', 'TRANSFERENCIAS', 'PAGOS', 'DELIVERIES'].includes(
             filtros().tipo
@@ -171,7 +197,7 @@
             />
           </div>
         }
-        @if (['VENTAS', 'PRODUCTOS_MAS_VENDIDOS', 'PAGOS'].includes(filtros().tipo)) {
+        @if (['VENTAS', 'VENTAS_POR_SUCURSAL', 'INGRESOS_POR_CATEGORIA', 'PRODUCTOS_MAS_VENDIDOS', 'PAGOS'].includes(filtros().tipo)) {
           <div class="field">
             <label for="reporte-entrega">Tipo de entrega</label
             ><select
@@ -271,7 +297,7 @@
   </section>
 
   @if (resultado(); as reporte) {
-    <section class="result-card" aria-labelledby="resultado-titulo">
+    <section class="result-card" aria-labelledby="resultado-titulo" [attr.aria-busy]="cargando()">
       <div class="section-heading result-heading">
         <div>
           <p class="eyebrow">Resultado</p>
@@ -281,7 +307,7 @@
             {{ reporte.filtros_efectivos.fecha_hasta }} ·
             {{
               reporte.filtros_efectivos.sucursal_id
-                ? 'Sucursal ' + reporte.filtros_efectivos.sucursal_id
+                ? nombreSucursal(reporte.filtros_efectivos.sucursal_id)
                 : 'Todas las sucursales autorizadas'
             }}
             · {{ reporte.total_filas }} registros
@@ -358,7 +384,7 @@
               @for (fila of filasPagina(); track $index) {
                 <tr>
                   @for (columna of reporte.columnas; track columna.key) {
-                    <td>{{ fila[columna.key] }}</td>
+                    <td>{{ formatear(fila[columna.key], columna.key) }}</td>
                   }
                 </tr>
               }

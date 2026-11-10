@@ -51,3 +51,25 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 1100px) { .filters-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 700px) { .section-heading, .result-heading { flex-direction: column; } .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .download-actions, .mode-switch { width: 100%; } .download-actions button, .mode-switch button { flex: 1; } }
 @media (max-width: 480px) { .filters-grid { grid-template-columns: 1fr; } .metrics { grid-template-columns: 1fr 1fr; } }
+
+/* Reportes: jerarquía, lectura y controles cómodos en escritorio y celular. */
+:host { display: block; color: #222a22; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.reportes-page { max-width: 1440px; margin-inline: auto; padding: clamp(16px, 3vw, 40px); }
+.page-header { border-bottom: 1px solid #dce2d5; padding-bottom: 26px; margin-bottom: 28px; }
+.page-header h1 { font-family: inherit; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-height: 1.15; }
+h2 { font-family: inherit; font-weight: 750; letter-spacing: -.025em; }
+.eyebrow { color: #465934; }
+.filters-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); padding-top: 20px; border-top: 1px solid #e6eadf; }
+.voice-panel { max-width: none; padding: 22px; background: #f7f9f3; border: 1px solid #dce4d2; border-radius: 16px; }
+.example-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 24px; }
+.example-list button { text-align: left; background: white; color: #35442c; border: 1px solid #c7d2bd; border-radius: 20px; padding: 9px 13px; font-size: .85rem; line-height: 1.4; }
+.example-list button:hover { background: #eaf0e3; }
+.mic-button { background: #465934; }
+.metrics article { border: 1px solid #dde4d6; background: #f6f8f2; }
+.metrics strong { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.chart-box { padding: 12px; box-sizing: border-box; border: 1px solid #e3e7dd; border-radius: 12px; height: 340px; }
+tbody tr:hover { background: #f7f9f4; }
+.table-wrap:focus-visible { outline: 3px solid #465934; outline-offset: 3px; }
+button, input, select { min-height: 44px; }
+@media (max-width: 850px) { .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 540px) { .filters-grid { grid-template-columns: 1fr; } .voice-panel { padding: 16px; } .mode-switch { flex-wrap: wrap; } .pagination { flex-wrap: wrap; } .metrics { grid-template-columns: 1fr; } .chart-box { height: 290px; } }

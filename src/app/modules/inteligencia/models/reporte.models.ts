@@ -1,5 +1,7 @@
 export type TipoReporte =
   | 'VENTAS'
+  | 'VENTAS_POR_SUCURSAL'
+  | 'INGRESOS_POR_CATEGORIA'
   | 'PRODUCTOS_MAS_VENDIDOS'
   | 'INVENTARIO'
   | 'RESERVAS'
@@ -15,7 +17,10 @@ export interface ReporteFiltros {
   fecha_desde: string;
   fecha_hasta: string;
   sucursal_id: number | null;
-  agrupacion: 'DIA' | 'MES';
+  agrupacion: 'DIA' | 'SEMANA' | 'MES';
+  categoria_id?: number | null;
+  producto_id?: number | null;
+  limite?: number;
   solo_bajo_stock: boolean;
   estado?: string | null;
   metodo_pago?: string | null;
@@ -26,6 +31,8 @@ export interface ReporteFiltros {
 }
 
 export interface ReporteCatalogo {
+  categorias?: { id: number; nombre: string }[];
+  productos?: { id: number; nombre: string; categoria_id: number }[];
   tipos: { id: TipoReporte; nombre: string }[];
   sucursales: { id: number; nombre: string; ciudad: string }[];
 }

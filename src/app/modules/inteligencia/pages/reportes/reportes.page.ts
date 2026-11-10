@@ -96,7 +96,9 @@ export class ReportesPage implements OnInit, OnDestroy {
   protected readonly aviso = signal('');
   protected readonly pagina = signal(1);
   private readonly tiposBase: { id: TipoReporte; nombre: string }[] = [
-    { id: 'VENTAS', nombre: 'Ventas presenciales' },
+    { id: 'VENTAS', nombre: 'Ventas registradas' },
+    { id: 'VENTAS_POR_SUCURSAL', nombre: 'Ventas por sucursal y período' },
+    { id: 'INGRESOS_POR_CATEGORIA', nombre: 'Ingresos por categoría' },
     { id: 'PRODUCTOS_MAS_VENDIDOS', nombre: 'Productos más vendidos' },
     { id: 'INVENTARIO', nombre: 'Inventario por sucursal' },
     { id: 'RESERVAS', nombre: 'Reservas' },
@@ -106,6 +108,23 @@ export class ReportesPage implements OnInit, OnDestroy {
     { id: 'DELIVERIES', nombre: 'Pedidos con delivery' },
     { id: 'USUARIOS', nombre: 'Usuarios registrados' },
   ];
+  protected readonly permiteProducto = computed(() => ['VENTAS', 'VENTAS_POR_SUCURSAL', 'INGRESOS_POR_CATEGORIA', 'PRODUCTOS_MAS_VENDIDOS', 'INVENTARIO'].includes(this.filtros().tipo));
+  protected readonly productosDisponibles = computed(() => (this.catalogo()?.productos ?? []).filter(p => !this.filtros().categoria_id || p.categoria_id === this.filtros().categoria_id));
+  protected readonly ejemplos = ['Ventas de septiembre agrupadas por sucursal', 'Los diez productos más vendidos este mes', 'Gráfico de ventas por semana', 'Compará las ventas de las sucursales durante los últimos tres meses', 'Ingresos por categoría este mes'];
+  protected nombreSucursal(id: number): string {
+    return this.catalogo()?.sucursales.find(s => s.id === id)?.nombre ?? 'Sucursal seleccionada';
+  }
+  protected usarEjemplo(texto: string): void {
+    this.textoVoz.set(texto);
+    this.origen.set('TEXTO');
+    this.interpretado.set(false);
+    this.modo.set('voz');
+  }
+  protected formatear(valor: string | number | boolean | null, campo: string): string {
+    if (valor === null) return '—';
+    if (['importe', 'total', 'subtotal', 'descuento', 'monto_total', 'costo_delivery'].includes(campo)) return new Intl.NumberFormat('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(valor));
+    return String(valor);
+  }
   protected readonly filasPagina = computed(() => this.resultado()?.filas ?? []);
   protected readonly totalPaginas = computed(() =>
     Math.max(1, Math.ceil((this.resultado()?.total_filas ?? 0) / (this.resultado()?.tamano ?? 20))),
@@ -118,7 +137,7 @@ export class ReportesPage implements OnInit, OnDestroy {
     return [
       { label: 'Registros del resultado completo', valor: s.total_filas },
       ...(r.tipo === 'VENTAS' ? [{ label: 'Ventas completadas', valor: s.completadas }] : []),
-      ...(['VENTAS', 'PRODUCTOS_MAS_VENDIDOS', 'INVENTARIO'].includes(r.tipo)
+      ...(['VENTAS', 'VENTAS_POR_SUCURSAL', 'INGRESOS_POR_CATEGORIA', 'PRODUCTOS_MAS_VENDIDOS', 'INVENTARIO'].includes(r.tipo)
         ? [{ label: 'Unidades', valor: s.unidades }]
         : []),
       ...s.importes_por_moneda.map((m) => ({ label: 'Importe ' + m.moneda, valor: m.importe })),
@@ -157,7 +176,7 @@ export class ReportesPage implements OnInit, OnDestroy {
   protected actualizarFiltro(campo: keyof ReporteFiltros, event: Event): void {
     const value = (event.target as HTMLInputElement | HTMLSelectElement).value;
     const siguiente =
-      campo === 'sucursal_id'
+      ['sucursal_id', 'categoria_id', 'producto_id', 'limite'].includes(campo)
         ? value
           ? Number(value)
           : null
@@ -168,9 +187,13 @@ export class ReportesPage implements OnInit, OnDestroy {
           : value || null;
     this.filtros.update((actual) => {
       const base = { ...actual, [campo]: siguiente } as ReporteFiltros;
+      if (campo === 'categoria_id') base.producto_id = null;
       return campo === 'tipo'
         ? {
             ...base,
+            categoria_id: null,
+            producto_id: null,
+            solo_bajo_stock: false,
             estado: null,
             metodo_pago: null,
             proveedor_pago: null,
@@ -242,6 +265,7 @@ export class ReportesPage implements OnInit, OnDestroy {
       this.error.set('Dicta o escribe una consulta primero.');
       return;
     }
+    const generacion = this.cambios.generacion();
     this.cargando.set(true);
     this.error.set('');
     this.aviso.set('');
@@ -253,6 +277,7 @@ export class ReportesPage implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (respuesta) => {
+          if (generacion !== this.cambios.generacion()) return;
           if (!respuesta.interpretado || !respuesta.filtros) {
             this.error.set(respuesta.advertencias.join(' '));
             return;
@@ -260,7 +285,7 @@ export class ReportesPage implements OnInit, OnDestroy {
           this.filtros.set(respuesta.filtros);
           this.interpretado.set(true);
           this.aviso.set(
-            'Consulta interpretada. Revisa los filtros y confirma para generar el reporte.',
+            'Consulta interpretada. Revisa los filtros y confirma para generar el reporte. ' + respuesta.advertencias.join(' '),
           );
         },
         error: (error: HttpErrorResponse) => this.error.set(this.mensajeError(error)),
@@ -351,25 +376,26 @@ export class ReportesPage implements OnInit, OnDestroy {
     this.chart?.destroy();
     const canvas = this.chartCanvas()?.nativeElement;
     if (!canvas || reporte.serie_grafico.length === 0) return;
-    const serie = reporte.serie_grafico.slice(0, 20);
+    const comparacion = reporte.tipo === 'VENTAS_POR_SUCURSAL';
+    const serie = comparacion ? reporte.serie_grafico : reporte.serie_grafico.slice(0, 100);
+    const periodos = [...new Set(serie.map(s => s.label.slice(0,10)))];
+    const sucursales = [...new Set(serie.map(s => s.label.slice(13)))];
+    const colores = ['#465934','#315b7a','#975032','#6e4d81','#946900','#236b67'];
+    const datasets = comparacion ? sucursales.map((sucursal, i) => ({
+      label: sucursal,
+      data: periodos.map(periodo => Number(serie.find(s => s.label === periodo + ' · ' + sucursal)?.valor ?? 0)),
+      borderColor: colores[i % colores.length], backgroundColor: colores[i % colores.length], fill: false,
+    })) : [{ label: reporte.titulo, data: serie.map(item => Number(item.valor)), borderColor: '#465934', backgroundColor: 'rgba(70,89,52,.22)', fill: true }];
     this.chart = new Chart(canvas, {
-      type: reporte.tipo === 'PRODUCTOS_MAS_VENDIDOS' ? 'bar' : 'line',
+      type: ['PRODUCTOS_MAS_VENDIDOS', 'INGRESOS_POR_CATEGORIA', 'VENTAS_POR_SUCURSAL', 'INVENTARIO'].includes(reporte.tipo) ? 'bar' : 'line',
       data: {
-        labels: serie.map((item) => item.label),
-        datasets: [
-          {
-            label: reporte.titulo,
-            data: serie.map((item) => Number(item.valor)),
-            borderColor: '#829165',
-            backgroundColor: 'rgba(130,145,101,.35)',
-            fill: true,
-          },
-        ],
+        labels: comparacion ? periodos : serie.map((item) => item.label),
+        datasets,
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: { legend: { display: comparacion, position: 'bottom' } },
         scales: { y: { beginAtZero: true } },
         indexAxis: reporte.tipo === 'PRODUCTOS_MAS_VENDIDOS' ? 'y' : 'x',
       },
