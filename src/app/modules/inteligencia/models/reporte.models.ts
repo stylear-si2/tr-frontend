@@ -21,6 +21,7 @@ export interface ReporteFiltros {
   categoria_id?: number | null;
   producto_id?: number | null;
   limite?: number;
+  por_sucursal?: boolean;
   solo_bajo_stock: boolean;
   estado?: string | null;
   metodo_pago?: string | null;

@@ -1,3 +1,4 @@
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../autenticacion/services/auth.service';
 import { CambioContextoService } from '../../../../core/services/cambio-contexto.service';
@@ -8,6 +9,7 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   ElementRef,
   inject,
   OnDestroy,
@@ -42,7 +44,7 @@ type SpeechFactory = new () => SpeechEngine;
 
 @Component({
   selector: 'app-reportes-page',
-  imports: [ProgramacionesReportesComponent],
+  imports: [ProgramacionesReportesComponent, ReactiveFormsModule],
   templateUrl: './reportes.page.html',
   styleUrl: './reportes.page.css',
 })
@@ -52,8 +54,15 @@ export class ReportesPage implements OnInit, OnDestroy {
   protected readonly plan = inject(EstadoPlanService);
   protected readonly esAdmin = inject(AuthService).tieneRol('ADMINISTRADOR');
   protected readonly origen = signal<'TEXTO' | 'VOZ'>('TEXTO');
+  protected readonly sucursalControl = new FormControl<number | null>(null);
   private revision = 0;
   constructor() {
+    effect(() => {
+      this.sucursalControl.setValue(this.filtros().sucursal_id ?? null, { emitEvent: false });
+    });
+    this.sucursalControl.valueChanges.pipe(takeUntilDestroyed()).subscribe(sucursal_id => {
+      this.filtros.update(f => ({ ...f, sucursal_id }));
+    });
     this.cambios.cambio$.pipe(takeUntilDestroyed()).subscribe(() => {
       this.revision++;
       this.limpiarAnalisis();
@@ -225,6 +234,11 @@ export class ReportesPage implements OnInit, OnDestroy {
     this.modo.set(modo);
     this.error.set('');
   }
+  protected cambiarRankingSucursal(event: Event): void {
+    const por_sucursal = (event.target as HTMLSelectElement).value === 'SI';
+    this.filtros.update(f => ({ ...f, por_sucursal }));
+  }
+
   protected actualizarFiltro(campo: keyof ReporteFiltros, event: Event): void {
     const value = (event.target as HTMLInputElement | HTMLSelectElement).value;
     const siguiente =
@@ -245,6 +259,7 @@ export class ReportesPage implements OnInit, OnDestroy {
             ...base,
             categoria_id: null,
             producto_id: null,
+            por_sucursal: false,
             solo_bajo_stock: false,
             estado: null,
             metodo_pago: null,
