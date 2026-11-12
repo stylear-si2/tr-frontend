@@ -406,6 +406,9 @@
             </thead>
             <tbody>
               @for (fila of filasPagina(); track $index) {
+                @if (reporte.tipo === 'PRODUCTOS_MAS_VENDIDOS' && reporte.filtros_efectivos.por_sucursal && ($index === 0 || fila['sucursal_id'] !== filasPagina()[$index - 1]['sucursal_id'])) {
+                  <tr class="branch-ranking-heading"><th [attr.colspan]="reporte.columnas.length" scope="rowgroup">{{ fila['sucursal'] }} · Top {{ reporte.filtros_efectivos.limite ?? 10 }} productos</th></tr>
+                }
                 <tr>
                   @for (columna of reporte.columnas; track columna.key) {
                     <td>{{ formatear(fila[columna.key], columna.key) }}</td>

@@ -445,18 +445,21 @@ export class ReportesPage implements OnInit, OnDestroy {
     this.chart?.destroy();
     const canvas = this.chartCanvas()?.nativeElement;
     if (!canvas || reporte.serie_grafico.length === 0) return;
-    const tipoIA = this.analisis()?.grafico;
+    const rankingSucursal = reporte.tipo === 'PRODUCTOS_MAS_VENDIDOS' && reporte.filtros_efectivos.por_sucursal;
+    const tipoIA = rankingSucursal ? undefined : this.analisis()?.grafico;
     const circular = tipoIA === 'PASTEL' || tipoIA === 'DONA';
     const comparacion = reporte.tipo === 'VENTAS_POR_SUCURSAL' && (!tipoIA || tipoIA === 'BARRAS_AGRUPADAS');
-    const serie = comparacion ? reporte.serie_grafico : reporte.serie_grafico.slice(0, 100);
+    const serie = comparacion || rankingSucursal ? reporte.serie_grafico : reporte.serie_grafico.slice(0, 100);
     const periodos = [...new Set(serie.map(s => s.label.slice(0,10)))];
     const sucursales = [...new Set(serie.map(s => s.label.slice(13)))];
     const colores = ['#465934','#315b7a','#975032','#6e4d81','#946900','#236b67'];
+    const gruposRanking = [...new Set(serie.map(item => item.label.split(' · ')[0]))];
+    const coloresRanking = serie.map(item => colores[gruposRanking.indexOf(item.label.split(' · ')[0]) % colores.length]);
     const datasets = comparacion ? sucursales.map((sucursal, i) => ({
       label: sucursal,
       data: periodos.map(periodo => Number(serie.find(s => s.label === periodo + ' · ' + sucursal)?.valor ?? 0)),
       borderColor: colores[i % colores.length], backgroundColor: colores[i % colores.length], fill: false,
-    })) : [{ label: reporte.titulo, data: serie.map(item => Number(item.valor)), borderColor: '#465934', backgroundColor: circular ? serie.map((_,i) => colores[i % colores.length]) : 'rgba(70,89,52,.22)', fill: !circular }];
+    })) : [{ label: reporte.titulo, data: serie.map(item => Number(item.valor)), borderColor: '#465934', backgroundColor: rankingSucursal ? coloresRanking : circular ? serie.map((_,i) => colores[i % colores.length]) : 'rgba(70,89,52,.22)', fill: !circular }];
     this.chart = new Chart(canvas, {
       type: tipoIA ? ({ BARRAS: 'bar', LINEAS: 'line', PASTEL: 'pie', DONA: 'doughnut', BARRAS_AGRUPADAS: 'bar' } as const)[tipoIA] : ['PRODUCTOS_MAS_VENDIDOS', 'INGRESOS_POR_CATEGORIA', 'VENTAS_POR_SUCURSAL', 'INVENTARIO'].includes(reporte.tipo) ? 'bar' : 'line',
       data: {

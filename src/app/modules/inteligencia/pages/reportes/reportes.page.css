@@ -82,3 +82,5 @@ button, input, select { min-height: 44px; }
 .analysis-card li { line-height: 1.7; margin-block: 6px; }
 .analysis-chart { padding-top: 14px; border-top: 1px solid #dce3d4; font-size: .9rem; line-height: 1.6; }
 .analysis-card audio { width: min(100%,480px); margin-top: 14px; }
+
+.branch-ranking-heading th { background: #e6eddf; color: #26371e; padding: 1rem; border-top: 3px solid #465934; text-align: left; font-weight: 700; }
