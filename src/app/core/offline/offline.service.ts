@@ -105,6 +105,7 @@ export class OfflineService {
   );
 
   constructor() {
+    (globalThis as any).stylearOffline = this;
     this.cambios.cambio$.subscribe(() => this.cerrarMemoria());
     this.sw?.versionUpdates.subscribe((evento) => {
       if (evento.type === 'VERSION_READY') this.actualizacion.set(true);
@@ -303,6 +304,20 @@ export class OfflineService {
     ) {
       throw new Error('La sucursal o la operación no está autorizada.');
     }
+    console.group('%c⚡ [Offline Live] Operación registrada en vivo', 'background: #2563eb; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+    console.log('🔹 Tipo:', operacion.tipo);
+    console.log('🔹 UUID:', operacion.uuid);
+    console.log('🔹 Sucursal ID:', operacion.sucursal);
+    console.log('🔹 Fecha:', new Date(operacion.fecha).toLocaleTimeString());
+    console.log('🔹 Estado:', operacion.estado);
+    if (operacion.efectivo != null) console.log('🔹 Efectivo / Total:', (operacion.efectivo / 100).toFixed(2), 'Bs');
+    if (operacion.lineas && operacion.lineas.length) {
+      console.log('🔹 Líneas / Prendas:');
+      console.table(operacion.lineas);
+    }
+    if (operacion.datosCambio) console.log('🔹 Datos de cambio:', operacion.datosCambio);
+    console.log('📦 Guardado en IndexedDB:', operacion);
+    console.groupEnd();
     const contenido = await sellar(acceso.clave, this.etiqueta(acceso, operacion.uuid), operacion);
     this.comprobar(revision);
     await this.db.encolar({
@@ -629,6 +644,11 @@ export class OfflineService {
     const operaciones = await this.leerCola(acceso);
     this.comprobar(revision);
     this.operaciones.set(operaciones);
+    console.log(
+      `%c📦 [Offline Storage] Cola en IndexedDB actualizada (${operaciones.length} en cola):`,
+      'color: #059669; font-weight: bold;',
+      operaciones,
+    );
   }
 
   private comprobar(revision: number): void {

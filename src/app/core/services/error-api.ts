@@ -14,6 +14,14 @@ export function mensajeApi(
   error: unknown,
   fallback = 'No se pudo completar la solicitud.',
 ): string {
+  if (
+    error instanceof Error &&
+    !(error instanceof HttpErrorResponse) &&
+    typeof error.message === 'string' &&
+    error.message.trim()
+  ) {
+    return error.message;
+  }
   const detalle = detalleApi(error);
   if (typeof detalle === 'string' && detalle.trim()) return detalle;
   if (registro(detalle) && typeof detalle['mensaje'] === 'string') return detalle['mensaje'];

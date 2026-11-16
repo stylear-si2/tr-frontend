@@ -373,6 +373,7 @@ export class OperacionesOfflinePage {
     try {
       await operacion();
     } catch (error) {
+      console.error('Error en operación offline:', error);
       this.error.set(mensajeApi(error, 'No se pudo completar. Revisa la conexión.'));
     } finally {
       this.guardando.set(false);
